@@ -43,13 +43,13 @@ export default function Home() {
     ]
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: any) => {
     e.preventDefault();
     console.log('Submitted:', formData);
     setSubmitted(true);
   };
 
-  const handleInputChange = (field, value) => {
+  const handleInputChange = (field: any, value: any) => {
     setFormData({ ...formData, [field]: value });
   };
 
@@ -231,7 +231,7 @@ export default function Home() {
                 <select
                   value={formData.testCaseId}
                   onChange={(e) => {
-                    const selected = testCases[formData.module]?.find(tc => tc.id === e.target.value);
+                    const selected = (testCases as any)[formData.module]?.find((tc: { id: string; }) => tc.id === e.target.value);
                     if (selected) {
                       handleInputChange('testCaseId', selected.id);
                       handleInputChange('title', selected.title);
@@ -245,7 +245,7 @@ export default function Home() {
                   className="w-full px-4 py-3 border border-neutral-300 focus:border-orange-600 focus:outline-none font-sans"
                 >
                   <option value="">-- Select or create custom test case --</option>
-                  {testCases[formData.module]?.map((tc) => (
+                  {(testCases as any)[formData.module]?.map((tc: any) => (
                     <option key={tc.id} value={tc.id}>
                       {tc.id} - {tc.title}
                     </option>
