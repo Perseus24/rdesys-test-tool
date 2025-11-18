@@ -1,6 +1,7 @@
 'use client';
-import { AlertCircle, CheckCircle } from 'lucide-react';
-import React, { useState } from 'react';
+import { AlertCircle, CheckCircle, Loader } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { submitResponse } from './lib/supabase';
 
 
 export default function Home() {
@@ -18,6 +19,9 @@ export default function Home() {
         testerRole: '',
         testerEmail: ''
     });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitted, setSubmitted] = useState(false);
+    
 
     const modules = [
         { id: 'promis+', name: 'Proposal Management Information System +', desc: 'Proposal submission, review, approval, and management' },
@@ -33,6 +37,90 @@ export default function Home() {
     const handleInputChange = (field: any, value: any) => {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
+
+    const handleSubmitResponse = async (e: any) => {
+        e.preventDefault();
+        const data = {
+            tester_email: formData.testerEmail,
+            test_id: formData.testCaseId,
+            test_is_pass: formData.pass,
+            remarks: formData.remarks,
+            tester_role: formData.testerRole,
+            tester_name: formData.testerName
+        }
+        setIsSubmitting(true);
+        const error = await submitResponse(data);
+        saveUserInfo(formData.testerName, formData.testerEmail);
+        setSubmitted(true);
+        setIsSubmitting(false);
+
+        if (error) {
+            console.error('Error submitting response:', error.message);
+        }
+    };
+
+    const saveUserInfo = (name: string, email: string) => {
+        localStorage.setItem('feedbackName', name);
+        localStorage.setItem('feedbackEmail', email);
+    };
+
+    const loadLocalUserInfo = () => {
+        const name = localStorage.getItem('feedbackName');
+        const email = localStorage.getItem('feedbackEmail');
+        if (name && email) {
+            handleInputChange('testerName', name);
+            handleInputChange('testerEmail', email);
+        }
+    }
+
+    useEffect(() => {
+        loadLocalUserInfo();
+    }, []);
+
+    if (submitted) {
+        return (
+            <div className='min-h-screen bg-neutral-50 text-neutral-900 font-mono flex items-center justify-center p-8'>
+                <div className='max-w-2xl flex flex-col text-center'>
+                    <div className="w-20 h-20 bg-green-100 border-4 border-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <CheckCircle size={40} className="text-green-600" />
+                    </div>
+                    <p className='text-4xl font-light mb-4'>Test Case Submitted</p>
+                    <p className="text-lg text-neutral-600 font-sans mb-8">Thank you for your response. Your feedbacks have been recorded and will be reviewed by the development team.</p>
+                    <div className='bg-white border border-neutral-300 p-8 flex flex-col gap-2 text-left text-sm'>
+                        <p className='text-xs text-neutral-500 mb-3'>SUBMISSION SUMMARY</p>
+                        <div className='flex justify-between border-b border-b-neutral-200 pb-2'>
+                            <p className='text-neutral-500'>Module:</p>
+                            <p className='font-medium'>{ modules.find(m => m.id === formData.module)?.name }</p>
+                        </div>
+                        <div className='flex justify-between border-b border-b-neutral-200 pb-2'>
+                            <p className='text-neutral-500'>Test Case:</p>
+                            <p className='font-medium'>{ formData.testCaseId } - { formData.title }</p>
+                        </div>
+                        <div className='flex justify-between border-b border-b-neutral-200 pb-2'>
+                            <p className='text-neutral-500'>Submitted by:</p>
+                            <p className='font-medium'>{ formData.testerName }</p>
+                        </div>
+                        <div className='flex justify-between border-b border-b-neutral-200 pb-2'>
+                            <p className='text-neutral-500'>Email:</p>
+                            <p className='font-medium'>{ formData.testerEmail }</p>
+                        </div>
+                    </div>
+                    <button 
+                        onClick={() => { 
+                            setSubmitted(false); 
+                            setCurrentStep(1); 
+                            setFormData({ module: '', testCaseId: '', title: '', description: '', remarks: '', pass: null, attachmentType: 'link', attachment: '', testerName: '', testerRole: '', testerEmail: '' });
+                            loadLocalUserInfo();
+                        }}
+                        
+                            className="mt-6 px-6 py-3 bg-neutral-900 text-white hover:bg-orange-600 transition-colors"
+                    >
+                        Submit Another Test Case
+                    </button>
+                </div>
+            </div>
+        )
+    }
 
     return (
         <div className='min-h-screen bg-neutral-50 text-neutral-900 font-mono'>
@@ -293,13 +381,20 @@ export default function Home() {
                                             Back
                                     </div>
                                     <button 
-                                        onClick={() => setCurrentStep(3)}
-                                        disabled={formData.testerEmail == '' || formData.testerRole == ''}
+                                        onClick={handleSubmitResponse}
+                                        disabled={formData.testerEmail == '' || formData.testerRole == '' || isSubmitting}
                                         className={`
                                             bg-black px-6 py-3 transition-colors text-white 
-                                            ${formData.testerEmail == '' || formData.testerRole == '' ? 'opacity-50 cursor-not-allowed' : 'hover:bg-orange-600  cursor-pointer'}
+                                            ${formData.testerEmail == '' || formData.testerRole == '' || isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-orange-600  cursor-pointer'}
                                         `}>
-                                            Submit
+                                            {
+                                                isSubmitting ? (
+                                                    <div className='flex items-center gap-2'>
+                                                        <Loader size={20} className='animate-spin' />
+                                                        Submitting...
+                                                    </div>
+                                                ) : <p>Submit</p>
+                                            }
                                     </button>
                                 </div>
                             </div>
