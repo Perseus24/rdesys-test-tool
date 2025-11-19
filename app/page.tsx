@@ -17,7 +17,8 @@ export default function Home() {
         attachment: '',
         testerName: '',
         testerRole: '',
-        testerEmail: ''
+        testerEmail: '',
+        userType: ''
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitted, setSubmitted] = useState(false);
@@ -25,13 +26,19 @@ export default function Home() {
 
     const modules = [
         { id: 'promis+', name: 'Proposal Management Information System +', desc: 'Proposal submission, review, approval, and management' },
-        { id: 'inspire', name: 'Information Something', desc: 'Proposal submission, review, approval, and management' },
+        { id: 'inspire', name: 'INtegrated System for Project Implementation and Research Evaluation', desc: 'Admin view, research management, reports, and analytics' },
+        { id: 'scorecard', name: 'Scorecard', desc: 'College performance, leaderboard, KRAs, and targets' },
     ]
 
     const testCases = {
-        'promis+': [
-            { id: 'PRMS-001', title: 'Dashboard successfully loaded', desc: 'The dashboard loads the correct information and layout.' },
-        ]
+        'promis+': {
+            'faculty': [
+                { id: 'PRMS-f-001', title: 'Dashboard successfully loaded', desc: 'The dashboard loads the correct information and layout.' },
+            ],
+            'admin': [
+                { id: 'PRMS-a-001', title: 'Dashboard successfully loaded', desc: 'The dashboard loads the correct information and layout.' },
+            ]
+        }
     }
 
     const handleInputChange = (field: any, value: any) => {
@@ -50,7 +57,7 @@ export default function Home() {
         }
         setIsSubmitting(true);
         const error = await submitResponse(data);
-        saveUserInfo(formData.testerName, formData.testerEmail);
+        saveUserInfo(formData.testerName, formData.testerEmail, formData.testerRole);
         setSubmitted(true);
         setIsSubmitting(false);
 
@@ -59,17 +66,20 @@ export default function Home() {
         }
     };
 
-    const saveUserInfo = (name: string, email: string) => {
+    const saveUserInfo = (name: string, email: string, role: string) => {
         localStorage.setItem('feedbackName', name);
         localStorage.setItem('feedbackEmail', email);
+        localStorage.setItem('feedbackRole', role);
     };
 
     const loadLocalUserInfo = () => {
         const name = localStorage.getItem('feedbackName');
         const email = localStorage.getItem('feedbackEmail');
-        if (name && email) {
+        const role = localStorage.getItem('feedbackRole');
+        if (name && email && role) {
             handleInputChange('testerName', name);
             handleInputChange('testerEmail', email);
+            handleInputChange('testerRole', role);
         }
     }
 
@@ -109,7 +119,7 @@ export default function Home() {
                         onClick={() => { 
                             setSubmitted(false); 
                             setCurrentStep(1); 
-                            setFormData({ module: '', testCaseId: '', title: '', description: '', remarks: '', pass: null, attachmentType: 'link', attachment: '', testerName: '', testerRole: '', testerEmail: '' });
+                            setFormData({ module: '', testCaseId: '', title: '', description: '', remarks: '', pass: null, attachmentType: 'link', attachment: '', testerName: '', testerRole: '', testerEmail: '', userType: '' });
                             loadLocalUserInfo();
                         }}
                         
@@ -203,12 +213,17 @@ export default function Home() {
                                         ))
                                     }
                                 </div>
-                                <div className='flex justify-end mt-8'>
-                                    <div 
+                                <div
+                                    className='flex justify-end mt-8'>
+                                    <button 
+                                        disabled={ formData.module == '' }
                                         onClick={() => setCurrentStep(2)}
-                                        className='bg-black px-6 py-3 transition-colors text-white hover:bg-orange-600 cursor-pointer'>
+                                        className={`
+                                            bg-black px-6 py-3 transition-colors text-white 
+                                            ${formData.module == ''  ? 'opacity-50 cursor-not-allowed' : 'hover:bg-orange-600  cursor-pointer'}
+                                        `}>
                                             Continue to Test Case
-                                    </div>
+                                    </button>
                                 </div>
                             </div>
                         )
@@ -221,84 +236,111 @@ export default function Home() {
                                 <div className='flex flex-col gap-5 mt-5'>
                                     <div className='flex flex-col gap-2'>
                                         <label className="text-sm text-neutral-600 ">
-                                            Select Test Case 
+                                            Select User Type <span className='text-red-600'>*</span>
                                         </label>
                                         <select
                                             className="w-full px-4 py-3 border border-neutral-300 focus:border-orange-600 focus:outline-none font-sans"
-                                            value={formData.testCaseId}
+                                            value={formData.userType}
                                             onChange={(e) => {
-                                                const selected = (testCases as any)[formData.module]?.find((tc: { id: string; }) => tc.id === e.target.value);
-                                                if (selected) {
-                                                    handleInputChange('testCaseId', selected.id);
-                                                    handleInputChange('title', selected.title);
-                                                    handleInputChange('description', selected.desc);
-                                                    } else {
-                                                    handleInputChange('testCaseId', '');
-                                                    handleInputChange('title', '');
-                                                    handleInputChange('description', '');
-                                                    }
-                                            }}>
-                                                <option value="">
-                                                    -- Select test case --
-                                                </option>
-                                                {
-                                                    (testCases as any)[formData.module]?.map((tc: { id: string; title: string; desc: string; }) => (
-                                                        <option key={tc.id} value={tc.id}>
-                                                            {tc.id} - {tc.title}
-                                                        </option>
-                                                    ))
-                                                }
+                                                handleInputChange('userType', e.target.value);
+                                            }}
+                                            >
+                                                <option value="">-- Select user type --</option>
+                                                <option value="faculty">Faculty</option>
+                                                <option value="admin">Admin</option>
                                         </select>
                                     </div>
-                                    <div className='flex flex-col gap-2'>
-                                        <label className="text-sm text-neutral-600 ">
-                                            Test Case ID
-                                        </label>
-                                        <p>{ formData.testCaseId }</p>
-                                    </div>
-                                    <div className='flex flex-col gap-2'>
-                                        <label className="text-sm text-neutral-600 ">
-                                            Test Case Title
-                                        </label>
-                                        <p>{ formData.title }</p>
-                                    </div>
-                                    <div className='flex flex-col gap-2'>
-                                        <label className="text-sm text-neutral-600 ">
-                                            Test Case Description
-                                        </label>
-                                        <p>{ formData.description }</p>
-                                    </div>
-                                    <div className='flex flex-col gap-2 mt-8'>
-                                        <label className="text-sm text-neutral-600 ">
-                                            Did the test case pass? <span className='text-red-600'>*</span>
-                                        </label>
-                                        <div className='flex gap-8'>
-                                            <div 
-                                                onClick={() => handleInputChange('pass', true)} 
-                                                className={`
-                                                flex-1 border-2 p-4 cursor-pointer transition-colors border-neutral-300 
-                                                ${formData.pass && formData.pass != null ? 'bg-orange-50 border-orange-600' : 'hover:border-neutral-500'}
-                                            `}>Yes</div>
-                                            <div 
-                                                onClick={() => handleInputChange('pass', false)} 
-                                                className={`
-                                                flex-1 border-2 p-4 cursor-pointer transition-colors border-neutral-300 
-                                                ${!formData.pass && formData.pass != null ? 'bg-orange-50 border-orange-600' : 'hover:border-neutral-500'}
-                                            `}>No</div>
-                                        </div>
-                                    </div>
-                                    <div className='flex flex-col gap-2'>
-                                        <label className="text-sm text-neutral-600 ">
-                                            Remarks
-                                        </label>
-                                        <textarea
-                                            className="w-full px-4 py-3 border border-neutral-300 focus:border-orange-600 focus:outline-none font-sans"
-                                            value={formData.remarks}
-                                            onChange={(e) => handleInputChange('remarks', e.target.value)}
-                                            placeholder="Report any bugs, issues, or suggestions. Be as detailed as possible..."
-                                            rows={6}
-                                        />
-                                    </div>
+                                    {
+                                        formData.userType != '' && (
+                                            <div className='flex flex-col gap-2'>
+                                                <label className="text-sm text-neutral-600 ">
+                                                    Select Test Case <span className='text-red-600'>*</span>
+                                                </label>
+                                                <select
+                                                    className="w-full px-4 py-3 border border-neutral-300 focus:border-orange-600 focus:outline-none font-sans"
+                                                    value={formData.testCaseId}
+                                                    onChange={(e) => {
+                                                        const selected = (testCases as any)[formData.module][formData.userType]?.find((tc: { id: string; }) => tc.id === e.target.value);
+                                                        if (selected) {
+                                                            handleInputChange('testCaseId', selected.id);
+                                                            handleInputChange('title', selected.title);
+                                                            handleInputChange('description', selected.desc);
+                                                            } else {
+                                                            handleInputChange('testCaseId', '');
+                                                            handleInputChange('title', '');
+                                                            handleInputChange('description', '');
+                                                            }
+                                                    }}>
+                                                        <option value="">
+                                                            -- Select test case --
+                                                        </option>
+                                                        {
+                                                            (testCases as any)[formData.module][formData.userType]?.map((tc: { id: string; title: string; desc: string; }) => (
+                                                                <option key={tc.id} value={tc.id}>
+                                                                    {tc.id} - {tc.title}
+                                                                </option>
+                                                            ))
+                                                        }
+                                                </select>
+                                            </div>
+                                        )
+                                    }
+
+                                    {
+                                        formData.testCaseId != '' && (
+                                            <React.Fragment>
+                                                <div className='flex flex-col gap-2'>
+                                                    <label className="text-sm text-neutral-600 ">
+                                                        Test Case ID
+                                                    </label>
+                                                    <p>{ formData.testCaseId }</p>
+                                                </div>
+                                                <div className='flex flex-col gap-2'>
+                                                    <label className="text-sm text-neutral-600 ">
+                                                        Test Case Title
+                                                    </label>
+                                                    <p>{ formData.title }</p>
+                                                </div>
+                                                <div className='flex flex-col gap-2'>
+                                                    <label className="text-sm text-neutral-600 ">
+                                                        Test Case Description
+                                                    </label>
+                                                    <p>{ formData.description }</p>
+                                                </div>
+                                                <div className='flex flex-col gap-2 mt-8'>
+                                                    <label className="text-sm text-neutral-600 ">
+                                                        Did the test case pass? <span className='text-red-600'>*</span>
+                                                    </label>
+                                                    <div className='flex gap-8'>
+                                                        <div 
+                                                            onClick={() => handleInputChange('pass', true)} 
+                                                            className={`
+                                                            flex-1 border-2 p-4 cursor-pointer transition-colors 
+                                                            ${formData.pass && formData.pass != null ? 'bg-green-50 border-green-600' : 'hover:border-neutral-500 border-neutral-300 '}
+                                                        `}>Yes</div>
+                                                        <div 
+                                                            onClick={() => handleInputChange('pass', false)} 
+                                                            className={`
+                                                            flex-1 border-2 p-4 cursor-pointer transition-colors 
+                                                            ${!formData.pass && formData.pass != null ? 'bg-red-50 border-red-600' : 'hover:border-neutral-500 border-neutral-300 '}
+                                                        `}>No</div>
+                                                    </div>
+                                                </div>
+                                                <div className='flex flex-col gap-2'>
+                                                    <label className="text-sm text-neutral-600 ">
+                                                        Remarks
+                                                    </label>
+                                                    <textarea
+                                                        className="w-full px-4 py-3 border border-neutral-300 focus:border-orange-600 focus:outline-none font-sans"
+                                                        value={formData.remarks}
+                                                        onChange={(e) => handleInputChange('remarks', e.target.value)}
+                                                        placeholder="Report any bugs, issues, or suggestions. Be as detailed as possible..."
+                                                        rows={6}
+                                                    />
+                                                </div>
+                                            </React.Fragment>
+                                        )
+                                    }
                                 </div>
                                 <div className='flex justify-between mt-8'>
                                     <div 
@@ -402,6 +444,11 @@ export default function Home() {
                         
                     }
                     
+                </div>
+
+                {/* footer */}
+                <div className="mt-8 text-center text-sm text-neutral-500 font-sans">
+                    <p>For technical support or questions, contact the development team at databanking.rdmd@bicol-u.edu.ph</p>
                 </div>
             </div>
         </div>
