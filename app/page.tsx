@@ -2,6 +2,7 @@
 import { AlertCircle, CheckCircle, Loader } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { submitResponse } from './lib/supabase';
+import { getTestCases } from './lib/supabase';
 
 
 export default function Home() {
@@ -22,24 +23,14 @@ export default function Home() {
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitted, setSubmitted] = useState(false);
+    const [testCases, setTestCases] = useState<any[]>([]);
     
 
     const modules = [
-        { id: 'promis+', name: 'Proposal Management Information System +', desc: 'Proposal submission, review, approval, and management' },
-        { id: 'inspire', name: 'INtegrated System for Project Implementation and Research Evaluation', desc: 'Admin view, research management, reports, and analytics' },
-        { id: 'scorecard', name: 'Scorecard', desc: 'College performance, leaderboard, KRAs, and targets' },
+        { id: 'PRMS', name: 'Proposal Management Information System +', desc: 'Proposal submission, review, approval, and management' },
+        { id: 'INSPR', name: 'INtegrated System for Project Implementation and Research Evaluation', desc: 'Admin view, research management, reports, and analytics' },
+        { id: 'SCRD', name: 'Scorecard', desc: 'College performance, leaderboard, KRAs, and targets' },
     ]
-
-    const testCases = {
-        'promis+': {
-            'faculty': [
-                { id: 'PRMS-f-001', title: 'Dashboard successfully loaded', desc: 'The dashboard loads the correct information and layout.' },
-            ],
-            'admin': [
-                { id: 'PRMS-a-001', title: 'Dashboard successfully loaded', desc: 'The dashboard loads the correct information and layout.' },
-            ]
-        }
-    }
 
     const handleInputChange = (field: any, value: any) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -66,6 +57,7 @@ export default function Home() {
         }
     };
 
+    // local storage
     const saveUserInfo = (name: string, email: string, role: string) => {
         localStorage.setItem('feedbackName', name);
         localStorage.setItem('feedbackEmail', email);
@@ -81,6 +73,12 @@ export default function Home() {
             handleInputChange('testerEmail', email);
             handleInputChange('testerRole', role);
         }
+    }
+
+    // get test cases
+    const getTest = async (userType: string, testId: string) => {
+        const data = await getTestCases(userType, testId);
+        setTestCases(data);
     }
 
     useEffect(() => {
@@ -242,12 +240,13 @@ export default function Home() {
                                             className="w-full px-4 py-3 border border-neutral-300 focus:border-orange-600 focus:outline-none font-sans"
                                             value={formData.userType}
                                             onChange={(e) => {
-                                                handleInputChange('userType', e.target.value);
+                                                handleInputChange('userType', e.target.value[0]);
+                                                getTest(e.target.value[0], formData.module);
                                             }}
                                             >
                                                 <option value="">-- Select user type --</option>
-                                                <option value="faculty">Faculty</option>
-                                                <option value="admin">Admin</option>
+                                                <option value="f">Faculty</option>
+                                                <option value="a">Admin</option>
                                         </select>
                                     </div>
                                     {
@@ -259,27 +258,31 @@ export default function Home() {
                                                 <select
                                                     className="w-full px-4 py-3 border border-neutral-300 focus:border-orange-600 focus:outline-none font-sans"
                                                     value={formData.testCaseId}
+                                                    
                                                     onChange={(e) => {
-                                                        const selected = (testCases as any)[formData.module][formData.userType]?.find((tc: { id: string; }) => tc.id === e.target.value);
+                                                        const selected = testCases.find((tc: any) => tc.id == e.target.value);
                                                         if (selected) {
                                                             handleInputChange('testCaseId', selected.id);
                                                             handleInputChange('title', selected.title);
-                                                            handleInputChange('description', selected.desc);
+                                                            handleInputChange('description', selected.description);
                                                             } else {
                                                             handleInputChange('testCaseId', '');
                                                             handleInputChange('title', '');
                                                             handleInputChange('description', '');
                                                             }
-                                                    }}>
+                                                    }}
+                                                    >
                                                         <option value="">
                                                             -- Select test case --
                                                         </option>
                                                         {
-                                                            (testCases as any)[formData.module][formData.userType]?.map((tc: { id: string; title: string; desc: string; }) => (
-                                                                <option key={tc.id} value={tc.id}>
-                                                                    {tc.id} - {tc.title}
-                                                                </option>
-                                                            ))
+                                                            testCases
+                                                                .filter((tc: any) => tc.user_type === formData.userType && tc.test_id.startsWith(formData.module))
+                                                                .map((tc: any) => (
+                                                                    <option key={tc.id} value={tc.id}>
+                                                                        {tc.title}
+                                                                    </option>
+                                                                ))
                                                         }
                                                 </select>
                                             </div>
@@ -293,7 +296,7 @@ export default function Home() {
                                                     <label className="text-sm text-neutral-600 ">
                                                         Test Case ID
                                                     </label>
-                                                    <p>{ formData.testCaseId }</p>
+                                                    <p>{ testCases.find((tc: any) => tc.id == formData.testCaseId).test_id }</p>
                                                 </div>
                                                 <div className='flex flex-col gap-2'>
                                                     <label className="text-sm text-neutral-600 ">
@@ -344,7 +347,12 @@ export default function Home() {
                                 </div>
                                 <div className='flex justify-between mt-8'>
                                     <div 
-                                        onClick={() => setCurrentStep(1)}
+                                        onClick={() => { 
+                                            setSubmitted(false); 
+                                            setCurrentStep(1); 
+                                            setFormData({ module: '', testCaseId: '', title: '', description: '', remarks: '', pass: null, attachmentType: 'link', attachment: '', testerName: '', testerRole: '', testerEmail: '', userType: '' });
+                                            loadLocalUserInfo();
+                                        }}
                                         className='px-6 py-3 transition-colors border border-neutral-300 hover:border-orange-600 hover:text-orange-600 cursor-pointer'>
                                             Back
                                     </div>

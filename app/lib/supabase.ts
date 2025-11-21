@@ -18,3 +18,17 @@ export const submitResponse = async (data: any) => {
     }
     return null;
 };
+
+export const getTestCases = async (userType: string, testId: string) => {
+    const { data, error } = await supabase
+        .from('test_cases')
+        .select('*')
+        .eq('user_type', userType)
+        .like('test_id', `${testId}%`)
+        .order('test_id', { ascending: true });
+
+    if (error) {
+        console.error('Error fetching test cases:', error.message);
+    }
+    return data || [];
+}
