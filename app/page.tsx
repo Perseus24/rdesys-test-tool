@@ -227,7 +227,7 @@ export default function Home() {
                     {
                         [1,2,3].map((step) => (
                             <React.Fragment key={step}>
-                                <div className="flex items-center gap-3">
+                                <div className="flex flex-wrap items-center gap-3">
                                     <div className={`
                                         w-10 h-10 shrink-0 rounded-full border-2 flex items-center justify-center font-medium
                                         ${currentStep == step
