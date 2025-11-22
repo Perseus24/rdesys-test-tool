@@ -1,7 +1,7 @@
 'use client';
-import { AlertCircle, CheckCircle, Loader } from 'lucide-react';
+import { AlertCircle, CheckCircle, ExternalLink, Loader, Star, Upload } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-import { submitResponse } from './lib/supabase';
+import { getStepsToTestCases, submitResponse, uploadImage, validateImageFile } from './lib/supabase';
 import { getTestCases } from './lib/supabase';
 
 
@@ -14,18 +14,75 @@ export default function Home() {
         description: '',
         remarks: '',
         pass: null,
-        attachmentType: 'link',
+        attachmentType: 'image',
         attachment: '',
         testerName: '',
         testerRole: '',
         testerEmail: '',
-        userType: ''
+        userType: '',
+        userExpRating: 0,
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitted, setSubmitted] = useState(false);
     const [testCases, setTestCases] = useState<any[]>([]);
-    
+    const [isFetchingTests, setIsFetchingTests] = useState(false);
+    const [steps, setSteps] = useState();
 
+    // image uploading
+    const [file, setFile] = useState<File | null>(null)
+    const [uploading, setUploading] = useState(false)
+    const [imageUrl, setImageUrl] = useState<string | null>(null)
+    const [error, setError] = useState<string | null>(null)
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const selectedFile = e.target.files?.[0]
+        
+        if (!selectedFile) return
+
+        // Validate file
+        const validation = validateImageFile(selectedFile)
+        if (!validation.valid) {
+            setError(validation.error || 'Invalid file')
+            setFile(null)
+            return
+        }
+
+        setError(null)
+        setFile(selectedFile)
+    }
+
+    const handleUpload = async () => {
+        if (!file) {
+            setError('Please select a file first')
+            return
+        }
+
+        try {
+            setUploading(true)
+            setError(null)
+
+            // Upload using supabase.ts function
+            const result = await uploadImage(file)
+
+            if (!result.success) {
+                setError(result.error || 'Upload failed')
+                return
+            }
+
+            setImageUrl(result.url || null)
+            setFile(null)
+        
+            // Reset file input
+            const fileInput = document.getElementById('file-input') as HTMLInputElement
+            if (fileInput) fileInput.value = ''
+        } catch (error: any) {
+            setError(error.message || 'Error uploading file')
+        } finally {
+            setUploading(false)
+        }
+    }
+
+    let [starScaled, setStarScaled] = useState([0,0,0,0,0]);
     const modules = [
         { id: 'PRMS', name: 'Proposal Management Information System +', desc: 'Proposal submission, review, approval, and management' },
         { id: 'INSPR', name: 'INtegrated System for Project Implementation and Research Evaluation', desc: 'Admin view, research management, reports, and analytics' },
@@ -38,15 +95,20 @@ export default function Home() {
 
     const handleSubmitResponse = async (e: any) => {
         e.preventDefault();
+        setIsSubmitting(true);
+        await handleUpload();
+
         const data = {
             tester_email: formData.testerEmail,
             test_id: formData.testCaseId,
             test_is_pass: formData.pass,
             remarks: formData.remarks,
             tester_role: formData.testerRole,
-            tester_name: formData.testerName
+            tester_name: formData.testerName,
+            attachment_type: formData.attachmentType,
+            attachment: formData.attachmentType == 'link' ? formData.attachment : imageUrl,
+            user_experience_rating: formData.userExpRating
         }
-        setIsSubmitting(true);
         const error = await submitResponse(data);
         saveUserInfo(formData.testerName, formData.testerEmail, formData.testerRole);
         setSubmitted(true);
@@ -77,8 +139,15 @@ export default function Home() {
 
     // get test cases
     const getTest = async (userType: string, testId: string) => {
+        setIsFetchingTests(true)
         const data = await getTestCases(userType, testId);
         setTestCases(data);
+        setIsFetchingTests(false)
+    }
+
+    const getSteps = async(testId: number) => {
+        const data = await getStepsToTestCases(testId);
+        setSteps(data);
     }
 
     useEffect(() => {
@@ -96,19 +165,19 @@ export default function Home() {
                     <p className="text-lg text-neutral-600 font-sans mb-8">Thank you for your response. Your feedbacks have been recorded and will be reviewed by the development team.</p>
                     <div className='bg-white border border-neutral-300 p-8 flex flex-col gap-2 text-left text-sm'>
                         <p className='text-xs text-neutral-500 mb-3'>SUBMISSION SUMMARY</p>
-                        <div className='flex justify-between border-b border-b-neutral-200 pb-2'>
+                        <div className='flex justify-between border-b border-b-neutral-200 pb-2 text-right'>
                             <p className='text-neutral-500'>Module:</p>
                             <p className='font-medium'>{ modules.find(m => m.id === formData.module)?.name }</p>
                         </div>
-                        <div className='flex justify-between border-b border-b-neutral-200 pb-2'>
+                        <div className='flex justify-between border-b border-b-neutral-200 pb-2 text-right'>
                             <p className='text-neutral-500'>Test Case:</p>
                             <p className='font-medium'>{ formData.testCaseId } - { formData.title }</p>
                         </div>
-                        <div className='flex justify-between border-b border-b-neutral-200 pb-2'>
+                        <div className='flex justify-between border-b border-b-neutral-200 pb-2 text-right'>
                             <p className='text-neutral-500'>Submitted by:</p>
                             <p className='font-medium'>{ formData.testerName }</p>
                         </div>
-                        <div className='flex justify-between border-b border-b-neutral-200 pb-2'>
+                        <div className='flex justify-between border-b border-b-neutral-200 pb-2 text-right'>
                             <p className='text-neutral-500'>Email:</p>
                             <p className='font-medium'>{ formData.testerEmail }</p>
                         </div>
@@ -117,7 +186,7 @@ export default function Home() {
                         onClick={() => { 
                             setSubmitted(false); 
                             setCurrentStep(1); 
-                            setFormData({ module: '', testCaseId: '', title: '', description: '', remarks: '', pass: null, attachmentType: 'link', attachment: '', testerName: '', testerRole: '', testerEmail: '', userType: '' });
+                            setFormData({ module: '', userExpRating: 0, testCaseId: '', title: '', description: '', remarks: '', pass: null, attachmentType: 'image', attachment: '', testerName: '', testerRole: '', testerEmail: '', userType: '' });
                             loadLocalUserInfo();
                         }}
                         
@@ -144,7 +213,7 @@ export default function Home() {
                         <span className="italic text-neutral-600">feedback portal</span>
                     </h1>
                     <p className='max-w-2xl text-lg text-neutral-600 leading-relaxed font-sans mb-4'>
-                        Thank you for participating in the alpha testing phase the RDESys v1.0. 
+                        Thank you for participating in the alpha testing phase of the RDESys v1.0. 
                         Your feedback is crucial in identifying issues and improving the system before full deployment.</p>
                     <div className='-mt-5 max-w-2xl bg-orange-50 border-l-4 border-orange-600 p-4 text-sm text  -neutral-700 font-sans'>
                         <p>
@@ -160,7 +229,7 @@ export default function Home() {
                             <React.Fragment key={step}>
                                 <div className="flex items-center gap-3">
                                     <div className={`
-                                        w-10 h-10 rounded-full border-2 flex items-center justify-center font-medium
+                                        w-10 h-10 shrink-0 rounded-full border-2 flex items-center justify-center font-medium
                                         ${currentStep == step
                                             ? 'border-orange-600 bg-orange-600 text-white'
                                             : currentStep > step 
@@ -183,7 +252,7 @@ export default function Home() {
                     }
                 </div>
 
-                <div className='flex flex-col gap-5 bg-white border border-neutral-300 mt-12 p-8'>
+                <div id="main-body" className='flex flex-col gap-5 bg-white border border-neutral-300 mt-12 p-8 relative'>
                     {
                         currentStep == 1 && (
                             <div>
@@ -200,7 +269,7 @@ export default function Home() {
                                                         : 'border-neutral-300 hover:border-neutral-400'
                                                 }`}>
                                                 <div className={`
-                                                    flex items-center-justify-center rounded-full h-5 w-5  
+                                                    flex items-center-justify-center rounded-full h-5 w-5 shrink-0 
                                                     ${formData.module == module.id ? 'bg-orange-600': 'border-2 border-neutral-400'}
                                                 `}></div>
                                                 <div className='flex flex-col'>
@@ -226,7 +295,6 @@ export default function Home() {
                             </div>
                         )
                     }
-
                     {
                         currentStep == 2 && (
                             <div>
@@ -250,7 +318,7 @@ export default function Home() {
                                         </select>
                                     </div>
                                     {
-                                        formData.userType != '' && (
+                                        formData.userType != ''  && !isFetchingTests ? (
                                             <div className='flex flex-col gap-2'>
                                                 <label className="text-sm text-neutral-600 ">
                                                     Select Test Case <span className='text-red-600'>*</span>
@@ -265,6 +333,7 @@ export default function Home() {
                                                             handleInputChange('testCaseId', selected.id);
                                                             handleInputChange('title', selected.title);
                                                             handleInputChange('description', selected.description);
+                                                            getSteps(selected.id)
                                                             } else {
                                                             handleInputChange('testCaseId', '');
                                                             handleInputChange('title', '');
@@ -286,12 +355,31 @@ export default function Home() {
                                                         }
                                                 </select>
                                             </div>
+                                        ) : formData.userType != '' && isFetchingTests && (
+                                            <Loader className='animate-spin w-4 h-4' />
                                         )
                                     }
 
                                     {
                                         formData.testCaseId != '' && (
                                             <React.Fragment>
+                                                {
+                                                    steps && (
+                                                        <div className='hidden lg:flex absolute -right-80 w-[300px] top-0 p-8 flex-col gap-3 bg-white border border-neutral-300 text-sm'>
+                                                            <p className='text-xl font-medium'>Steps</p>
+                                                            <ol>
+                                                                {(steps as any)?.steps
+                                                                    ?.split(';')      
+                                                                    .map((step: string, index: number) => (
+                                                                    <>
+                                                                    <li key={index}>{index + 1}. {step.trim()}</li><br></br>
+                                                                    </>
+                                                                    ))
+                                                                }
+                                                            </ol>
+                                                        </div>
+                                                    )
+                                                }
                                                 <div className='flex flex-col gap-2'>
                                                     <label className="text-sm text-neutral-600 ">
                                                         Test Case ID
@@ -310,6 +398,23 @@ export default function Home() {
                                                     </label>
                                                     <p>{ formData.description }</p>
                                                 </div>
+                                                {
+                                                    steps && (
+                                                        <div className='flex lg:hidden flex-col gap-3 border-y -mx-8 px-8 py-4 text-neutral-600 bg-neutral-100'>
+                                                            <p className='text-xl font-medium'>Steps</p>
+                                                            <ol>
+                                                                {(steps as any)?.steps
+                                                                    ?.split(';')      
+                                                                    .map((step: string, index: number) => (
+                                                                    <>
+                                                                    <li key={index} className="text-sm">{index + 1}. {step.trim()}</li><br></br>
+                                                                    </>
+                                                                    ))
+                                                                }
+                                                            </ol>
+                                                        </div>
+                                                    )
+                                                }
                                                 <div className='flex flex-col gap-2 mt-8'>
                                                     <label className="text-sm text-neutral-600 ">
                                                         Did the test case pass? <span className='text-red-600'>*</span>
@@ -331,7 +436,7 @@ export default function Home() {
                                                 </div>
                                                 <div className='flex flex-col gap-2'>
                                                     <label className="text-sm text-neutral-600 ">
-                                                        Remarks
+                                                        Remarks { !formData.pass && (<span className='text-red-600'>*</span>)}
                                                     </label>
                                                     <textarea
                                                         className="w-full px-4 py-3 border border-neutral-300 focus:border-orange-600 focus:outline-none font-sans"
@@ -340,6 +445,115 @@ export default function Home() {
                                                         placeholder="Report any bugs, issues, or suggestions. Be as detailed as possible..."
                                                         rows={6}
                                                     />
+                                                </div>
+                                                <div className='flex flex-col gap-2'>
+                                                    <div className="text-sm text-neutral-600">
+                                                        Attachment
+                                                        <div className='flex gap-8 mt-2 mb-3'>
+                                                            <div className={
+                                                                `flex gap-2 flex-1 border-2 p-4 cursor-pointer transition-colors
+                                                                ${formData.attachmentType == 'image' ? 'bg-orange-50 border-orange-600' : 'hover:border-neutral-500 border-neutral-300 '}
+                                                                `
+                                                                }
+                                                                onClick={() =>  handleInputChange('attachmentType', 'image')}
+                                                            >
+                                                                <ExternalLink className='h-4 w-4'/>
+                                                                Upload Image
+                                                            </div>
+                                                            <div className={
+                                                                `flex gap-2 flex-1 border-2 p-4 cursor-pointer transition-colors
+                                                                ${formData.attachmentType == 'link' ? 'bg-orange-50 border-orange-600' : 'hover:border-neutral-500 border-neutral-300 '}
+                                                                `
+                                                            }
+                                                                onClick={() => handleInputChange('attachmentType', 'link')}
+                                                            >
+                                                                <ExternalLink className='h-4 w-4'/>
+                                                                Provide Link
+                                                            </div>
+                                                        </div>
+                                                        {
+                                                            formData.attachmentType == 'image' ? (
+                                                                <>
+                                                                    <label htmlFor="file-input" className={`block border-2 border-dashed p-8 text-center hover:border-orange-600 transition-colors cursor-pointer ${
+                                                                        file ? 'border-orange-600 bg-orange-50' : 'border-neutral-300'
+                                                                    }`}>
+                                                                        {file ? (
+                                                                        <>
+                                                                            <CheckCircle size={32} className="mx-auto mb-3 text-orange-600" />
+                                                                            <p className="text-sm text-neutral-900 font-sans mb-1 font-medium">
+                                                                            {file.name}
+                                                                            </p>
+                                                                            <p className="text-xs text-neutral-500">
+                                                                            {(file.size / 1024 / 1024).toFixed(2)} MB
+                                                                            </p>
+                                                                            <p className="text-xs text-orange-600 mt-2">Click to change file</p>
+                                                                        </>
+                                                                        ) : (
+                                                                        <>
+                                                                            <Upload size={32} className="mx-auto mb-3 text-neutral-400" />
+                                                                            <p className="text-sm text-neutral-600 font-sans mb-1">
+                                                                            Click to upload or drag and drop
+                                                                            </p>
+                                                                            <p className="text-xs text-neutral-500">PNG, JPG up to 5MB</p>
+                                                                        </>
+                                                                        )}
+                                                                    </label>
+                                                                    <input id="file-input" type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
+                                                                </>
+                                                            ) : (
+                                                                <input
+                                                                    type="url"
+                                                                    value={formData.attachment}
+                                                                    onChange={(e) => handleInputChange('attachment', e.target.value)}
+                                                                    placeholder="https://drive.google.com/... or https://imgur.com/..."
+                                                                    className="w-full px-4 py-3 border border-neutral-300 focus:border-orange-600 focus:outline-none font-sans"
+                                                                />
+                                                            )
+                                                        }
+                                                        {/* <input
+                                                            id="file-input"
+                                                            type="file"
+                                                            accept="image/*"
+                                                            onChange={handleFileChange}
+                                                            className="block w-full text-sm text-gray-500 mt-2
+                                                                file:mr-4 file:py-2 file:px-4
+                                                                file:rounded-md file:border-0
+                                                                file:text-sm file:font-semibold
+                                                                file:bg-blue-50 file:text-blue-700
+                                                                hover:file:bg-blue-100"
+                                                        /> */}
+                                                        {error && (
+                                                            <div className="p-3 bg-red-50 text-red-700 rounded-md text-sm">
+                                                            {error}
+                                                            </div>
+                                                        )}
+
+                                                    </div>
+                                                </div>
+                                                <div className='flex flex-col gap-2 items-center mt-4'>
+                                                    <label className="text-sm text-neutral-600 ">
+                                                        User Experience Rating <span className='text-red-600'>*</span>
+                                                    </label>
+                                                    <div className='flex gap-6 justify-center'>
+                                                        {
+                                                            [1,2,3,4,5].map((star) => (
+                                                                <Star 
+                                                                    onMouseEnter={() => {
+                                                                        setStarScaled([])
+                                                                        setStarScaled(Array(star).fill(1));
+                                                                    }}
+                                                                    onMouseLeave={() => setStarScaled([])}
+                                                                    onClick={() => formData.userExpRating = star}
+                                                                    key={star} 
+                                                                    className={`
+                                                                    h-9 w-9 transition-all transform mt-2 cursor-pointer
+                                                                    ${(starScaled[star-1] == 1 || (formData.userExpRating >= star && formData.userExpRating != 0)) ? 'scale-125 fill-orange-500 text-orange-500' : ''}
+                                                                `} />
+                                                                
+                                                            ))
+                                                        }
+                                                        
+                                                    </div>
                                                 </div>
                                             </React.Fragment>
                                         )
@@ -350,7 +564,7 @@ export default function Home() {
                                         onClick={() => { 
                                             setSubmitted(false); 
                                             setCurrentStep(1); 
-                                            setFormData({ module: '', testCaseId: '', title: '', description: '', remarks: '', pass: null, attachmentType: 'link', attachment: '', testerName: '', testerRole: '', testerEmail: '', userType: '' });
+                                            setFormData({ module: '', userExpRating: 0, testCaseId: '', title: '', description: '', remarks: '', pass: null, attachmentType: 'image', attachment: '', testerName: '', testerRole: '', testerEmail: '', userType: '' });
                                             loadLocalUserInfo();
                                         }}
                                         className='px-6 py-3 transition-colors border border-neutral-300 hover:border-orange-600 hover:text-orange-600 cursor-pointer'>
@@ -358,10 +572,10 @@ export default function Home() {
                                     </div>
                                     <button 
                                         onClick={() => setCurrentStep(3)}
-                                        disabled={formData.pass == null || formData.testCaseId == ''}
+                                        disabled={formData.pass == null || formData.testCaseId == '' || formData.userExpRating == 0 || (formData.remarks == '' && !formData.pass)}
                                         className={`
                                             bg-black px-6 py-3 transition-colors text-white 
-                                            ${formData.pass == null || formData.testCaseId == '' ? 'opacity-50 cursor-not-allowed' : 'hover:bg-orange-600  cursor-pointer'}
+                                            ${(formData.pass == null || formData.testCaseId == '' || formData.userExpRating == 0 || (formData.remarks == '' && !formData.pass)) ? 'opacity-50 cursor-not-allowed' : 'hover:bg-orange-600  cursor-pointer'}
                                         `}>
                                             Continue
                                     </button>
@@ -369,7 +583,6 @@ export default function Home() {
                             </div>
                         )
                     }
-
                     {
                         currentStep == 3 && (
                             <div>
@@ -449,9 +662,7 @@ export default function Home() {
                                 </div>
                             </div>
                         )
-                        
                     }
-                    
                 </div>
 
                 {/* footer */}
