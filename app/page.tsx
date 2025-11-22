@@ -1,12 +1,13 @@
 'use client';
 import { AlertCircle, CheckCircle, ExternalLink, Loader, Star, Upload } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-import { getStepsToTestCases, submitResponse, uploadImage, validateImageFile } from './lib/supabase';
+import { getStepsToTestCases, submitOverallForm, submitResponse, uploadImage, validateImageFile } from './lib/supabase';
 import { getTestCases } from './lib/supabase';
 
 
 export default function Home() {
     const [currentStep, setCurrentStep] = useState(1);
+    const [overallCurrStep, setOverallCurrStep] = useState(1);
     const [formData, setFormData] = useState({
         module: '',
         testCaseId: '',
@@ -22,8 +23,17 @@ export default function Home() {
         userType: '',
         userExpRating: 0,
     });
+
+    const [overallSystemEvalForm, setOverallSystemEvalForm] = useState({
+        easeOfUse: 0,
+        speedAndResponsiveness: 0,
+        clarity: 0,
+        usefulness: 0,
+        overallSatisfaction: 0,
+    })
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitted, setSubmitted] = useState(false);
+    const [overallFormSubmitted, setOverallFormSubmitted] = useState(false);
     const [testCases, setTestCases] = useState<any[]>([]);
     const [isFetchingTests, setIsFetchingTests] = useState(false);
     const [steps, setSteps] = useState();
@@ -83,6 +93,10 @@ export default function Home() {
     }
 
     let [starScaled, setStarScaled] = useState([0,0,0,0,0]);
+    const [stars, setStars] = useState<number[][]>([
+        [], [], [], [], []
+    ]);
+
     const modules = [
         { id: 'PRMS', name: 'Proposal Management Information System +', desc: 'Proposal submission, review, approval, and management' },
         { id: 'INSPR', name: 'INtegrated System for Project Implementation and Research Evaluation', desc: 'Admin view, research management, reports, and analytics' },
@@ -118,6 +132,26 @@ export default function Home() {
             console.error('Error submitting response:', error.message);
         }
     };
+
+    const handleOverallEvalForm = async (e: any) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+
+        Object.entries(overallSystemEvalForm).map(async (key, value) => {
+            const data = {
+                title: key[0],
+                rating: key[1],
+                user_email: formData.testerEmail,
+                user_role: formData.testerRole,
+                user_name: formData.testerName
+            }
+
+            const error = await submitOverallForm(data);
+        })
+        saveUserInfo(formData.testerName, formData.testerEmail, formData.testerRole);
+        setIsSubmitting(false);
+        setOverallFormSubmitted(true);
+    }
 
     // local storage
     const saveUserInfo = (name: string, email: string, role: string) => {
@@ -215,8 +249,23 @@ export default function Home() {
                     <p className='max-w-2xl text-lg text-neutral-600 leading-relaxed font-sans mb-4'>
                         Thank you for participating in the alpha testing phase of the RDESys v1.0. 
                         Your feedback is crucial in identifying issues and improving the system before full deployment.</p>
-                    <div className='-mt-5 max-w-2xl bg-orange-50 border-l-4 border-orange-600 p-4 text-sm text  -neutral-700 font-sans'>
-                        <p>
+                    <div className='-mt-5 max-w-2xl bg-orange-50 border-l-4 border-orange-600 p-4 text-sm text  -neutral-700 font-sans flex flex-col gap-2'>
+                        <p><span className='font-bold'>Instructions:</span></p>
+                        <p>Please perform each task in the RDESys website. After performing the task:</p>
+                        <ol className='list-decimal pl-10'>
+                            <li>Mark Pass/Fail,</li>
+                            <li>Add remarks or comments to report issues or suggestions, and</li>
+                            <li>Rate your experience (1–5). </li>
+                        </ol>
+                        <p><span className='font-medium'>Rating Guide:</span></p>
+                        <ol className='pl-10'>
+                            <li>1 ★ - Very Difficult / Not Working</li>
+                            <li>2 ★ - Difficult</li>
+                            <li>3 ★ - Neutral</li>
+                            <li>4 ★ - Easy</li>
+                            <li>5 ★ - Very Easy / Excellent</li>
+                        </ol>
+                        <p className='mt-3'>
                             <span className='font-bold'>Note:</span> Please test each module thoroughly and document any bugs, issues, or suggestions for improvement. 
                             Include screenshots or screen recordings when possible.</p>
                     </div>
@@ -252,7 +301,7 @@ export default function Home() {
                     }
                 </div>
 
-                <div id="main-body" className='flex flex-col gap-5 bg-white border border-neutral-300 mt-12 p-8 relative'>
+                <div className='flex flex-col gap-5 bg-white border border-neutral-300 mt-12 p-8 relative'>
                     {
                         currentStep == 1 && (
                             <div>
@@ -366,17 +415,30 @@ export default function Home() {
                                                 {
                                                     steps && (
                                                         <div className='hidden lg:flex absolute -right-80 w-[300px] top-0 p-8 flex-col gap-3 bg-white border border-neutral-300 text-sm'>
-                                                            <p className='text-xl font-medium'>Steps</p>
+                                                            <p className='text-base font-medium'>Pre-condition</p>
+                                                            <p>{ (steps as any)?.precondition }</p>
+                                                            <p className='text-base font-medium'>Steps</p>
                                                             <ol>
                                                                 {(steps as any)?.steps
                                                                     ?.split(';')      
                                                                     .map((step: string, index: number) => (
-                                                                    <>
-                                                                    <li key={index}>{index + 1}. {step.trim()}</li><br></br>
-                                                                    </>
+                                                                    <React.Fragment  key={index}>
+                                                                        <li>{index + 1}. {step.trim()}</li><br></br>
+                                                                    </React.Fragment>
                                                                     ))
                                                                 }
                                                             </ol>
+                                                            <p className='text-base font-medium'>Expected results</p>
+                                                            <ul>
+                                                                {(steps as any)?.expected_results
+                                                                    ?.split(';')      
+                                                                    .map((result: string, index: number) => (
+                                                                    <React.Fragment  key={index}>
+                                                                        <li>• {result.trim()}</li><br></br>
+                                                                    </React.Fragment>
+                                                                    ))
+                                                                }
+                                                            </ul>
                                                         </div>
                                                     )
                                                 }
@@ -401,17 +463,30 @@ export default function Home() {
                                                 {
                                                     steps && (
                                                         <div className='flex lg:hidden flex-col gap-3 border-y -mx-8 px-8 py-4 text-neutral-600 bg-neutral-100'>
-                                                            <p className='text-xl font-medium'>Steps</p>
+                                                            <p className='text-base font-medium'>Pre-condition</p>
+                                                            <p>{ (steps as any)?.precondition }</p>
+                                                            <p className='text-base font-medium'>Steps</p>
                                                             <ol>
                                                                 {(steps as any)?.steps
                                                                     ?.split(';')      
                                                                     .map((step: string, index: number) => (
-                                                                    <>
-                                                                    <li key={index} className="text-sm">{index + 1}. {step.trim()}</li><br></br>
-                                                                    </>
+                                                                    <React.Fragment  key={index}>
+                                                                        <li>{index + 1}. {step.trim()}</li><br></br>
+                                                                    </React.Fragment>
                                                                     ))
                                                                 }
                                                             </ol>
+                                                            <p className='text-base font-medium'>Expected results</p>
+                                                            <ul>
+                                                                {(steps as any)?.expected_results
+                                                                    ?.split(';')      
+                                                                    .map((result: string, index: number) => (
+                                                                    <React.Fragment  key={index}>
+                                                                        <li>• {result.trim()}</li><br></br>
+                                                                    </React.Fragment>
+                                                                    ))
+                                                                }
+                                                            </ul>
                                                         </div>
                                                     )
                                                 }
@@ -510,24 +585,11 @@ export default function Home() {
                                                                 />
                                                             )
                                                         }
-                                                        {/* <input
-                                                            id="file-input"
-                                                            type="file"
-                                                            accept="image/*"
-                                                            onChange={handleFileChange}
-                                                            className="block w-full text-sm text-gray-500 mt-2
-                                                                file:mr-4 file:py-2 file:px-4
-                                                                file:rounded-md file:border-0
-                                                                file:text-sm file:font-semibold
-                                                                file:bg-blue-50 file:text-blue-700
-                                                                hover:file:bg-blue-100"
-                                                        /> */}
                                                         {error && (
                                                             <div className="p-3 bg-red-50 text-red-700 rounded-md text-sm">
                                                             {error}
                                                             </div>
                                                         )}
-
                                                     </div>
                                                 </div>
                                                 <div className='flex flex-col gap-2 items-center mt-4'>
@@ -665,6 +727,169 @@ export default function Home() {
                     }
                 </div>
 
+                <div className='flex flex-col gap-3 mt-12'>
+                    <p className='text-xl font-semibold'>Overall System Evaluation</p>
+                    <div className='mt-3 max-w-2xl bg-orange-50 border-l-4 border-orange-600 p-4 text-sm text  -neutral-700 font-sans flex flex-col gap-2'>
+                        <p>Once you are finish evaluating each test cases, you may proceed to evaluate the overall system using the criteria below.</p>
+                        {/* <p className='mt-3'>
+                            <span className='font-bold'>Note:</span> Please test each module thoroughly and document any bugs, issues, or suggestions for improvement. 
+                            Include screenshots or screen recordings when possible.</p> */}
+                    </div>
+                    {/* {
+                        overallFormSubmitted && (
+                            
+                        )
+                    } */}
+                    {
+                        overallCurrStep == 1 ? ['Overall Ease of Use', 'Speed and Responsiveness', 'Clarity of Instructions and Interface', 'Usefulness for Research Workflow', 'Overall Satisfaction'].map((item, index) => (
+                            <div key={index} className='flex justify-between gap-2 items-center mt-4'>
+                                <label className="text-sm text-neutral-600 ">
+                                    { item } <span className='text-red-600'>*</span>
+                                </label>
+                                <div className='flex gap-6 justify-center'>
+                                    {
+                                        [1,2,3,4,5].map((star) => (
+                                            <Star 
+                                                onMouseEnter={() => {
+                                                    setStars(prev => {
+                                                        const copy = [...prev];
+                                                        copy[index] = Array(star).fill(0);
+                                                        return copy;
+                                                    });
+                                                    setStars(prev => {
+                                                        const copy = [...prev];
+                                                        copy[index] = Array(star).fill(1);
+                                                        return copy;
+                                                    });
+
+                                                }}
+                                                onMouseLeave={() => {
+                                                    setStars(prev => {
+                                                        const copy = [...prev];
+                                                        copy[index] = Array(star).fill(0);
+                                                        return copy;
+                                                    });
+                                                }}
+                                                onClick={() => {
+                                                    switch(index){
+                                                        case 0: overallSystemEvalForm.easeOfUse = star
+                                                                return;
+                                                        case 1: overallSystemEvalForm.speedAndResponsiveness = star
+                                                                return;
+                                                        case 2: overallSystemEvalForm.clarity = star
+                                                                return;
+                                                        case 3: overallSystemEvalForm.usefulness = star
+                                                                return;
+                                                        case 4: overallSystemEvalForm.overallSatisfaction = star
+                                                                return;
+                                                    }
+                                                }}
+                                                key={star} 
+                                                className={`
+                                                h-9 w-9 transition-all transform mt-2 cursor-pointer
+                                                ${(stars[index][star-1] == 1 || ( 
+                                                    index == 0 ? overallSystemEvalForm.easeOfUse >= star &&  overallSystemEvalForm.easeOfUse != 0 :
+                                                    index == 1 ? overallSystemEvalForm.speedAndResponsiveness >= star &&  overallSystemEvalForm.speedAndResponsiveness != 0 :
+                                                    index == 2 ? overallSystemEvalForm.clarity >= star &&  overallSystemEvalForm.clarity != 0 :
+                                                    index == 3 ? overallSystemEvalForm.usefulness >= star &&  overallSystemEvalForm.usefulness != 0 :
+                                                    index == 4 ? overallSystemEvalForm.overallSatisfaction >= star &&  overallSystemEvalForm.overallSatisfaction != 0 : ''
+                                                )) ? 'scale-125 fill-orange-500 text-orange-500' : ''}
+                                            `} />
+                                            
+                                        ))
+                                    }
+                                </div>
+                                
+                            </div>
+                        )) : (
+                            <div>
+                                <p className='text-xl font-medium'>Your Information</p>
+                                <div className='flex flex-col gap-5 mt-5'>
+                                    <div className='flex flex-col gap-2'>
+                                        <label className="text-sm text-neutral-600 ">
+                                            Name
+                                        </label>
+                                        <input
+                                            className="w-full px-4 py-3 border border-neutral-300 focus:border-orange-600 focus:outline-none font-sans"
+                                            value={formData.testerName}
+                                            onChange={(e) => handleInputChange('testerName', e.target.value)}
+                                            placeholder="Juan De La Cruz"
+                                        />
+                                    </div>
+                                    <div className='flex flex-col gap-2'>
+                                        <label className="text-sm text-neutral-600 ">
+                                            Role / Position <span className='text-red-600'>*</span>
+                                        </label>
+                                        <select
+                                            value={formData.testerRole}
+                                            onChange={(e) => handleInputChange('testerRole', e.target.value)}
+                                            className="w-full px-4 py-3 border border-neutral-300 focus:border-orange-600 focus:outline-none font-sans"
+                                            required
+                                        >
+                                            <option value="">Select your role</option>
+                                            <option value="professor">Professor</option>
+                                            <option value="dean">Dean</option>
+                                            <option value="college-coordinator">College Coordinator</option>
+                                            <option value="admin-staff">Administrative Staff</option>
+                                            <option value="other">Other</option>
+                                        </select>
+                                    </div>
+                                    <div className='flex flex-col gap-2'>
+                                        <label className="text-sm text-neutral-600 ">
+                                            Email Address <span className='text-red-600'>*</span>
+                                        </label>
+                                        <input
+                                            type='email'
+                                            className="w-full px-4 py-3 border border-neutral-300 focus:border-orange-600 focus:outline-none font-sans"
+                                            value={formData.testerEmail}
+                                            onChange={(e) => handleInputChange('testerEmail', e.target.value)}
+                                            placeholder="juan.delacruz@bicol-u.edu.ph"
+                                        />
+                                    </div>
+                                </div>
+                                <div className='flex gap-3 bg-neutral-100 border border-neutral-300 p-6 mt-8 font-sans text-sm'>
+                                    <AlertCircle size={20} className="text-orange-600 shrink-0 mt-1" />
+                                    <div className='flex flex-col gap-2'>
+                                        <p className='text-neutral-700 font-medium'>Privacy Notice</p>
+                                        <p>Your information will be used solely for the purpose of this alpha testing phase.</p>
+                                    </div>
+                                </div>
+                                <div className='flex justify-between mt-8'>
+                                    <div 
+                                        onClick={() => setOverallCurrStep(1)}
+                                        className='px-6 py-3 transition-colors border border-neutral-300 hover:border-orange-600 hover:text-orange-600 cursor-pointer'>
+                                            Back
+                                    </div>
+                                    <button 
+                                        onClick={handleOverallEvalForm}
+                                        disabled={formData.testerEmail == '' || formData.testerRole == '' || isSubmitting}
+                                        className={`
+                                            bg-black px-6 py-3 transition-colors text-white 
+                                            ${formData.testerEmail == '' || formData.testerRole == '' || isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-orange-600  cursor-pointer'}
+                                        `}>
+                                            {
+                                                isSubmitting ? (
+                                                    <div className='flex items-center gap-2'>
+                                                        <Loader size={20} className='animate-spin' />
+                                                        Submitting...
+                                                    </div>
+                                                ) : <p>Submit</p>
+                                            }
+                                    </button>
+                                </div>
+                            </div>
+                        )
+                    }
+                    <div className='w-full flex justify-center mt-5'>
+                        <button
+                            onClick={() => setOverallCurrStep(2)}
+                            disabled={Object.values(overallSystemEvalForm).some(v => v === 0)}
+                            className={`
+                                bg-black px-6 py-3 transition-colors text-white w-min 
+                                ${Object.values(overallSystemEvalForm).some(v => v === 0) ? 'opacity-50 cursor-not-allowed' : 'hover:bg-orange-600  cursor-pointer'}
+                            `}>Continue</button>
+                    </div>
+                </div>
                 {/* footer */}
                 <div className="mt-8 text-center text-sm text-neutral-500 font-sans">
                     <p>For technical support or questions, contact the development team at databanking.rdmd@bicol-u.edu.ph</p>

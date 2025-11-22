@@ -23,6 +23,15 @@ export const submitResponse = async (data: any) => {
     return null;
 };
 
+export const submitOverallForm = async (data: any) => {
+    const { error } = await supabase.from('overall_evaluation').insert(data);
+    if (error) {
+        console.error('Error submitting response:', error.message);
+        return error;
+    }
+    return null;
+}
+
 export const getTestCases = async (userType: string, testId: string) => {
     const { data, error } = await supabase
         .from('test_cases')
