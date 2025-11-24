@@ -38,7 +38,7 @@ export const getTestCases = async (userType: string, testId: string) => {
         .select('*')
         .eq('user_type', userType)
         .like('test_id', `${testId}%`)
-        .order('test_id', { ascending: true });
+        .order('order', { ascending: true });
 
     if (error) {
         console.error('Error fetching test cases:', error.message);
@@ -53,6 +53,17 @@ export const getStepsToTestCases = async (testId: number) => {
         .eq('test_id', testId)
         .single();
 
+    return data || null;
+}
+
+
+export const fetchPreviousModuleEval = async (email: string, module: string) => {
+    const { data, error } = await supabase
+        .from('overall_evaluation')
+        .select('*')
+        .eq('user_email', email)
+        .eq('module', module)
+        
     return data || null;
 }
 

@@ -1,9 +1,9 @@
 'use client';
 import { AlertCircle, CheckCircle, ExternalLink, Loader, Star, Upload } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-import { getStepsToTestCases, submitOverallForm, submitResponse, uploadImage, validateImageFile } from './lib/supabase';
+import { fetchPreviousModuleEval, getStepsToTestCases, submitOverallForm, submitResponse, uploadImage, validateImageFile } from './lib/supabase';
 import { getTestCases } from './lib/supabase';
-
+import Head from "next/head";
 
 export default function Home() {
     const [currentStep, setCurrentStep] = useState(1);
@@ -24,6 +24,7 @@ export default function Home() {
         userExpRating: 0,
     });
 
+    const [chosenOverallModule, setChosenOverallModule] = useState('');
     const [overallSystemEvalForm, setOverallSystemEvalForm] = useState({
         easeOfUse: 0,
         speedAndResponsiveness: 0,
@@ -106,6 +107,10 @@ export default function Home() {
     const handleInputChange = (field: any, value: any) => {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
+    
+    const handleInputChangeForOverall = (field: any, value: any) => {
+        setOverallSystemEvalForm(prev => ({ ...prev, [field]: value }));
+    };
 
     const handleSubmitResponse = async (e: any) => {
         e.preventDefault();
@@ -143,8 +148,11 @@ export default function Home() {
                 rating: key[1],
                 user_email: formData.testerEmail,
                 user_role: formData.testerRole,
-                user_name: formData.testerName
+                user_name: formData.testerName,
+                module: chosenOverallModule
             }
+
+            console.log("yo", data);
 
             const error = await submitOverallForm(data);
         })
@@ -187,6 +195,16 @@ export default function Home() {
     useEffect(() => {
         loadLocalUserInfo();
     }, []);
+
+    const [previousEvalForm, setPreviousEvalForm] = useState<any[]>([]);
+
+    const handleChangeOverallForm = async(module: string) => {
+        setChosenOverallModule(module);
+        const data = await fetchPreviousModuleEval(formData.testerEmail, module);
+        console.log(data);
+        setPreviousEvalForm(data || []);
+    }
+    
 
     if (submitted) {
         return (
@@ -358,7 +376,9 @@ export default function Home() {
                                             value={formData.userType}
                                             onChange={(e) => {
                                                 handleInputChange('userType', e.target.value[0]);
+                                                handleInputChange('testCaseId', '');
                                                 getTest(e.target.value[0], formData.module);
+
                                             }}
                                             >
                                                 <option value="">-- Select user type --</option>
@@ -415,8 +435,17 @@ export default function Home() {
                                                 {
                                                     steps && (
                                                         <div className='hidden lg:flex absolute -right-80 w-[300px] top-0 p-8 flex-col gap-3 bg-white border border-neutral-300 text-sm'>
-                                                            <p className='text-base font-medium'>Pre-condition</p>
-                                                            <p>{ (steps as any)?.precondition }</p>
+                                                            <p className='text-base font-medium'>Pre-conditions</p>
+                                                            <ol>
+                                                                {(steps as any)?.precondition
+                                                                    ?.split(';')      
+                                                                    .map((pc: string, index: number) => (
+                                                                    <React.Fragment  key={index}>
+                                                                        <li>{index + 1}. {pc.trim()}</li><br></br>
+                                                                    </React.Fragment>
+                                                                    ))
+                                                                }
+                                                            </ol>
                                                             <p className='text-base font-medium'>Steps</p>
                                                             <ol>
                                                                 {(steps as any)?.steps
@@ -672,11 +701,9 @@ export default function Home() {
                                             required
                                         >
                                             <option value="">Select your role</option>
-                                            <option value="professor">Professor</option>
-                                            <option value="dean">Dean</option>
-                                            <option value="college-coordinator">College Coordinator</option>
-                                            <option value="admin-staff">Administrative Staff</option>
-                                            <option value="other">Other</option>
+                                            <option value="professor">Faculty Researcher</option>
+                                            <option value="college-coordinator">Research Coordinator</option>
+                                            <option value="admin-staff">OVPRDE Staff</option>
                                         </select>
                                     </div>
                                     <div className='flex flex-col gap-2'>
@@ -730,18 +757,77 @@ export default function Home() {
                 <div className='flex flex-col gap-3 mt-12'>
                     <p className='text-xl font-semibold'>Overall System Evaluation</p>
                     <div className='mt-3 max-w-2xl bg-orange-50 border-l-4 border-orange-600 p-4 text-sm text  -neutral-700 font-sans flex flex-col gap-2'>
-                        <p>Once you are finish evaluating each test cases, you may proceed to evaluate the overall system using the criteria below.</p>
-                        {/* <p className='mt-3'>
-                            <span className='font-bold'>Note:</span> Please test each module thoroughly and document any bugs, issues, or suggestions for improvement. 
-                            Include screenshots or screen recordings when possible.</p> */}
+                        <p>Once you are done evaluating each test cases, you may proceed to evaluate the overall system using the criteria below.</p>
+                        <p><span className='font-medium'>Rating Guide:</span></p>
+                        <ol className='pl-10 flex flex-col gap-2'>
+                            <li className="flex flex-col">1 ★ - Very Poor
+                                <p>The feature performs inadequately; major problems significantly hinder use.</p>
+                            </li>
+                            <li className="flex flex-col">2 ★ - Poor
+                                <p>The feature has significant issues that make usage difficult or inconvenient.</p>
+                            </li>
+                            <li className="flex flex-col">3 ★ - Fair / Satisfactory
+                                <p>The feature is acceptable; some issues are noticeable but still usable.</p>
+                            </li>
+                            <li className="flex flex-col">4 ★ - Good
+                                <p>The feature works well; minor issues may exist but do not affect overall usability.</p>
+                            </li>
+                            <li className="flex flex-col">5 ★ - Excellent
+                                <p>The feature performs exceptionally well; exceeds expectations with no issues.</p>
+                            </li>
+                        </ol>
                     </div>
-                    {/* {
-                        overallFormSubmitted && (
-                            
-                        )
-                    } */}
+                    
+                    <div className='grid grid-cols-3 gap-5 mt-5 '>
+                        <button 
+                        onClick={() => handleChangeOverallForm('promis')}
+                        className={`border-2 p-6 cursor-pointer transition-all flex gap-4 ${
+                            chosenOverallModule == 'promis'
+                                ? 'border-orange-600 bg-orange-50'
+                                : 'border-neutral-300 hover:border-neutral-400'
+                        }`}>PROMIS+</button>
+                        <button 
+                        onClick={() => handleChangeOverallForm('inspire')}
+                        className={`border-2 p-6 cursor-pointer transition-all flex gap-4 ${
+                                chosenOverallModule == 'inspire'
+                                    ? 'border-orange-600 bg-orange-50'
+                                    : 'border-neutral-300 hover:border-neutral-400'
+                            }`}>INSPIRE</button>
+                        <button 
+                        onClick={() => handleChangeOverallForm('scorecard')}
+                        className={`border-2 p-6 cursor-pointer transition-all flex gap-4 ${
+                            chosenOverallModule == 'scorecard'
+                                ? 'border-orange-600 bg-orange-50'
+                                : 'border-neutral-300 hover:border-neutral-400'
+                        }`}>SCORECARD</button>
+                    </div>
                     {
-                        overallCurrStep == 1 ? ['Overall Ease of Use', 'Speed and Responsiveness', 'Clarity of Instructions and Interface', 'Usefulness for Research Workflow', 'Overall Satisfaction'].map((item, index) => (
+                        overallFormSubmitted && (
+                            <div className='min-h-screen bg-neutral-50 text-neutral-900 font-mono flex items-center justify-center p-8'>
+                                <div className='max-w-2xl flex flex-col text-center'>
+                                    <div className="w-20 h-20 bg-green-100 border-4 border-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                                        <CheckCircle size={40} className="text-green-600" />
+                                    </div>
+                                    <p className='text-4xl font-light mb-4'>Module Evaluation Submitted</p>
+                                    <p className="text-lg text-neutral-600 font-sans mb-8">Thank you for your response. Your feedbacks have been recorded and will be reviewed by the development team.</p>
+                                    <button 
+                                        onClick={() => { 
+                                            setOverallFormSubmitted(false); 
+                                            setOverallCurrStep(1); 
+                                            setChosenOverallModule('');
+                                            setOverallSystemEvalForm({easeOfUse: 0, speedAndResponsiveness: 0, clarity: 0, usefulness: 0, overallSatisfaction: 0});
+                                            loadLocalUserInfo();
+                                        }}
+                                            className="mt-6 px-6 py-3 bg-neutral-900 text-white hover:bg-orange-600 transition-colors"
+                                    >
+                                        Evaluate another module
+                                    </button>
+                                </div>
+                            </div>
+                        )
+                    }
+                    {
+                        chosenOverallModule != '' && overallCurrStep == 1 ? ['Overall Ease of Use', 'Speed and Responsiveness', 'Clarity of Instructions and Interface', 'Usefulness for Research Workflow', 'Overall Satisfaction'].map((item, index) => (
                             <div key={index} className='flex justify-between gap-2 items-center mt-4'>
                                 <label className="text-sm text-neutral-600 ">
                                     { item } <span className='text-red-600'>*</span>
@@ -801,7 +887,7 @@ export default function Home() {
                                 </div>
                                 
                             </div>
-                        )) : (
+                        )) : chosenOverallModule != '' && overallCurrStep == 2 ? (
                             <div>
                                 <p className='text-xl font-medium'>Your Information</p>
                                 <div className='flex flex-col gap-5 mt-5'>
@@ -827,11 +913,9 @@ export default function Home() {
                                             required
                                         >
                                             <option value="">Select your role</option>
-                                            <option value="professor">Professor</option>
-                                            <option value="dean">Dean</option>
-                                            <option value="college-coordinator">College Coordinator</option>
-                                            <option value="admin-staff">Administrative Staff</option>
-                                            <option value="other">Other</option>
+                                            <option value="professor">Faculty Researcher</option>
+                                            <option value="college-coordinator">Research Coordinator</option>
+                                            <option value="admin-staff">OVPRDE Staff</option>
                                         </select>
                                     </div>
                                     <div className='flex flex-col gap-2'>
@@ -878,17 +962,21 @@ export default function Home() {
                                     </button>
                                 </div>
                             </div>
+                        ) : null
+                    }
+                    {
+                    chosenOverallModule != '' && overallCurrStep == 1 && (
+                            <div className='w-full flex justify-center mt-5'>
+                                <button
+                                    onClick={() => setOverallCurrStep(2)}
+                                    disabled={Object.values(overallSystemEvalForm).some(v => v === 0)}
+                                    className={`
+                                        bg-black px-6 py-3 transition-colors text-white w-min 
+                                        ${Object.values(overallSystemEvalForm).some(v => v === 0) ? 'opacity-50 cursor-not-allowed' : 'hover:bg-orange-600  cursor-pointer'}
+                                    `}>Continue</button>
+                            </div>
                         )
                     }
-                    <div className='w-full flex justify-center mt-5'>
-                        <button
-                            onClick={() => setOverallCurrStep(2)}
-                            disabled={Object.values(overallSystemEvalForm).some(v => v === 0)}
-                            className={`
-                                bg-black px-6 py-3 transition-colors text-white w-min 
-                                ${Object.values(overallSystemEvalForm).some(v => v === 0) ? 'opacity-50 cursor-not-allowed' : 'hover:bg-orange-600  cursor-pointer'}
-                            `}>Continue</button>
-                    </div>
                 </div>
                 {/* footer */}
                 <div className="mt-8 text-center text-sm text-neutral-500 font-sans">
