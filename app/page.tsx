@@ -179,8 +179,8 @@ export default function Home() {
         }
 
         async function fetchEmails() {
-            const data = await getUserFeedbacks('jasonbenedito.esquivel@bicol-u.edu.ph');
-            // const data = await getUserFeedbacks(email?? '');
+            // const data = await getUserFeedbacks('jasonbenedito.esquivel@bicol-u.edu.ph');
+            const data = await getUserFeedbacks(email?? '');
             console.log("emails", data);
             if (data) setFeedbacks(data);
         }
