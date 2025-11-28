@@ -1,11 +1,13 @@
 'use client';
 import { AlertCircle, CheckCircle, ExternalLink, Loader, Star, Upload } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-import { fetchPreviousModuleEval, getStepsToTestCases, submitOverallForm, submitResponse, uploadImage, validateImageFile } from './lib/supabase';
+import { fetchPreviousModuleEval, getStepsToTestCases, getUserFeedbacks, submitOverallForm, submitResponse, uploadImage, validateImageFile } from './lib/supabase';
 import { getTestCases } from './lib/supabase';
 import Head from "next/head";
 
 export default function Home() {
+    const [feedbacks, setFeedbacks] = useState<any[]>([]);
+    
     const [currentStep, setCurrentStep] = useState(1);
     const [overallCurrStep, setOverallCurrStep] = useState(1);
     const [formData, setFormData] = useState({
@@ -152,8 +154,6 @@ export default function Home() {
                 module: chosenOverallModule
             }
 
-            console.log("yo", data);
-
             const error = await submitOverallForm(data);
         })
         saveUserInfo(formData.testerName, formData.testerEmail, formData.testerRole);
@@ -177,6 +177,14 @@ export default function Home() {
             handleInputChange('testerEmail', email);
             handleInputChange('testerRole', role);
         }
+
+        async function fetchEmails() {
+            const data = await getUserFeedbacks('jasonbenedito.esquivel@bicol-u.edu.ph');
+            // const data = await getUserFeedbacks(email?? '');
+            console.log("emails", data);
+            if (data) setFeedbacks(data);
+        }
+        fetchEmails();
     }
 
     // get test cases
@@ -194,6 +202,8 @@ export default function Home() {
 
     useEffect(() => {
         loadLocalUserInfo();
+        
+        
     }, []);
 
     const [previousEvalForm, setPreviousEvalForm] = useState<any[]>([]);
@@ -978,6 +988,35 @@ export default function Home() {
                         )
                     }
                 </div>
+
+                <table className=' mt-12 w-full border-separate border-spacing-y-3'>
+                    <thead>
+                        <tr>
+                            <th className='text-left'>Test ID</th>
+                            <th className='text-left'>Test Case</th>
+                            <th className='text-left'>isPass</th>
+                            <th className='text-left'>Rating</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {
+                            Object.keys(feedbacks).map((key, index) => (
+                                <tr key={index} className='border-b border-neutral-300'>
+                                    <td>{feedbacks[key as any].test_cases.test_id}</td>
+                                    <td>{feedbacks[key as any].test_cases.title}</td>
+                                    <td>{feedbacks[key as any].test_is_pass ? <CheckCircle className='text-green-600' /> : <AlertCircle className='text-red-600' />}</td>
+                                    <td className='flex gap-2'>
+                                        {
+                                            Array.from({ length: feedbacks[key as any].user_experience_rating }, (_, index) => (
+                                                <Star key={index} className='fill-orange-600 text-orange-600' />
+                                            ))
+                                        }
+                                    </td>
+                                </tr>
+                            ))
+                        }
+                    </tbody>
+                </table>
                 {/* footer */}
                 <div className="mt-8 text-center text-sm text-neutral-500 font-sans">
                     <p>For technical support or questions, contact the development team at databanking.rdmd@bicol-u.edu.ph</p>

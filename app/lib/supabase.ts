@@ -67,6 +67,26 @@ export const fetchPreviousModuleEval = async (email: string, module: string) => 
     return data || null;
 }
 
+export const getUserEmails =  async () => {
+    const { data, error } = await supabase
+        .from('responses')
+        .select('tester_email');
+        
+    const emails = [...new Set(data?.map(row => row.tester_email))];
+    return emails || null;
+}
+
+export const getUserFeedbacks = async (email: string) => {
+    const { data, error } = await supabase
+        .from('responses')
+        .select(`
+            *,
+            test_cases(*)
+        `)
+        .eq('tester_email', email);
+        
+    return data || null;
+}
 export const validateImageFile = (file: File): { valid: boolean; error?: string } => {
     if (!file.type.startsWith('image/')) {
         return { valid: false, error: 'Please select an image file' }
