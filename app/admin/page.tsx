@@ -211,7 +211,7 @@ export default function Home() {
                         className="mx-auto aspect-square max-h-[250px] flex-1"
                         >
                         <RadialBarChart
-                            className='fill-orange-600'
+                            // className='fill-orange-600'
                             data={chartData}
                             endAngle={(chartData[0].visitors / totalTestCases) * 360}
                             innerRadius={80}
@@ -224,7 +224,7 @@ export default function Home() {
                                 className="first:fill-gray-200 last:fill-white"
                                 polarRadius={[86, 74]}
                             />
-                            <RadialBar dataKey="visitors" background />
+                            <RadialBar dataKey="visitors" background className="fill-orange-600" />
                             <PolarRadiusAxis tick={false} tickLine={false} axisLine={false}>
                             <Label
                                 content={({ viewBox }) => {
