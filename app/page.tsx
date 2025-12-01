@@ -159,6 +159,7 @@ export default function Home() {
         saveUserInfo(formData.testerName, formData.testerEmail, formData.testerRole);
         setIsSubmitting(false);
         setOverallFormSubmitted(true);
+        loadLocalUserInfo();
     }
 
     // local storage
@@ -181,12 +182,11 @@ export default function Home() {
         async function fetchEmails() {
             // const data = await getUserFeedbacks('jasonbenedito.esquivel@bicol-u.edu.ph');
             const data = await getUserFeedbacks(email?? '');
-            console.log("emails", data);
             if (data) setFeedbacks(data);
         }
         fetchEmails();
+        handleChangeOverallForm('promis');
     }
-
     // get test cases
     const getTest = async (userType: string, testId: string) => {
         setIsFetchingTests(true)
@@ -203,16 +203,21 @@ export default function Home() {
     useEffect(() => {
         loadLocalUserInfo();
         
-        
     }, []);
 
     const [previousEvalForm, setPreviousEvalForm] = useState<any[]>([]);
+    const [isFetchingPrevious, setIsFetchingPrevious] = useState(false);
 
     const handleChangeOverallForm = async(module: string) => {
+        setIsFetchingPrevious(true);
+        const email = localStorage.getItem('feedbackEmail');
+
         setChosenOverallModule(module);
-        const data = await fetchPreviousModuleEval(formData.testerEmail, module);
-        console.log(data);
+        const data = await fetchPreviousModuleEval(email?? '', module);
+        console.log("new data", data);
         setPreviousEvalForm(data || []);
+        setIsFetchingPrevious(false);
+
     }
     
 
@@ -837,7 +842,27 @@ export default function Home() {
                         )
                     }
                     {
-                        chosenOverallModule != '' && overallCurrStep == 1 ? ['Overall Ease of Use', 'Speed and Responsiveness', 'Clarity of Instructions and Interface', 'Usefulness for Research Workflow', 'Overall Satisfaction'].map((item, index) => (
+                        isFetchingPrevious && (
+                            <div className='my-8 flex items-center justify-center h-full w-full mx-auto'>
+                                <Loader className='h-7 w-7 animate-spin' />
+                            </div>
+                        )
+                    }
+                    {
+                        previousEvalForm.length > 0 && !overallFormSubmitted && (
+                            <div className='my-6 bg-neutral-50 text-neutral-900 font-mono flex items-center justify-center p-8'>
+                                <div className='max-w-2xl flex flex-col text-center'>
+                                    <div className="w-20 h-20 bg-green-100 border-4 border-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                                        <CheckCircle size={40} className="text-green-600" />
+                                    </div>
+                                    <p className='text-4xl font-light mb-4'>Previous Evaluation Found</p>
+                                    <p className="text-lg text-neutral-600 font-sans mb-8">You have already evaluated this module. Please choose another module.</p>
+                                </div>
+                            </div>
+                        )
+                    }
+                    {
+                        (chosenOverallModule != '' && overallCurrStep == 1 && previousEvalForm.length == 0  && !isSubmitting && !overallFormSubmitted) ? ['Overall Ease of Use', 'Speed and Responsiveness', 'Clarity of Instructions and Interface', 'Usefulness for Research Workflow', 'Overall Satisfaction'].map((item, index) => (
                             <div key={index} className='flex justify-between gap-2 items-center mt-4'>
                                 <label className="text-sm text-neutral-600 ">
                                     { item } <span className='text-red-600'>*</span>
@@ -857,7 +882,6 @@ export default function Home() {
                                                         copy[index] = Array(star).fill(1);
                                                         return copy;
                                                     });
-
                                                 }}
                                                 onMouseLeave={() => {
                                                     setStars(prev => {
@@ -895,9 +919,8 @@ export default function Home() {
                                         ))
                                     }
                                 </div>
-                                
                             </div>
-                        )) : chosenOverallModule != '' && overallCurrStep == 2 ? (
+                        )) : (chosenOverallModule != '' && overallCurrStep == 2 && !isSubmitting && !overallFormSubmitted) ? (
                             <div>
                                 <p className='text-xl font-medium'>Your Information</p>
                                 <div className='flex flex-col gap-5 mt-5'>

@@ -1,7 +1,7 @@
 'use client';
-import { AlertCircle, CheckCircle, ExternalLink, Loader, Star, Upload } from 'lucide-react';
+import { AlertCircle, CheckCircle, ExternalLink, Loader, Star, ChevronsUpDown  } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-import { getAverageOverallEval, getNumberOfTestEvaluated, getOverallEvals, getTotalTestCases, getUserEmails, getUserFeedbacks} from '../lib/supabase';
+import { getAverageOverallEval, getNumberOfTestEvaluated, getOverallEvalResponses, getOverallEvals, getTotalTestCases, getUserEmails, getUserFeedbacks} from '../lib/supabase';
 import Head from "next/head";
 import {
     Table,
@@ -14,7 +14,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { TrendingUp } from "lucide-react"
-import { PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart } from "recharts";
+import { Label, PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, RadialBar, RadialBarChart } from "recharts";
 import {
     Card,
     CardContent,
@@ -28,10 +28,13 @@ import {
     ChartTooltip,
     ChartTooltipContent,
 } from "@/components/ui/chart"
-
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from "@/components/ui/collapsible"
 
 export default function Home() {
-    // const evaluations = ['easeOfUse', 'speedAndResponsiveness', 'clarity', 'usefulness', 'overallSatisfaction'];
     const evaluations = [{
         title: 'Ease of Use',
         value: 'easeOfUse',
@@ -55,8 +58,16 @@ export default function Home() {
     const [totalTestCases, setTotalTestCases] = useState(0);
     const [totalEvaluated, setTotalEvaluated] = useState(0);
     const modules = ['promis', 'inspire', 'scorecard'];
-
     const [moduleData, setModuleData] = useState<any[]>([]);
+    const [chartData, setChartData] = useState<any[]>([
+        { browser: "safari", visitors: 0, fill: "var(--color-safari)" },
+    ]);
+    const [seeAllTestResponses, setSeeAllTestResponses] = useState(false);
+    const [overallEvalResponses, setOverallEvalResponses] = useState<any[]>([]);
+    const [seeOverallEvalResponses, setSeeOverallEvalResponses] = useState(false);
+    const [activeFiltersOverallEval, setActiveFiltersOverallEval] = useState<any[]>([]);
+    const [filteredOverallEvalResponses, setFilteredOverallEvalResponses] = useState<any[]>([]);
+
     useEffect(() => {
         async function fetchEmails() {
             const emails = await getUserEmails();
@@ -68,12 +79,32 @@ export default function Home() {
             if (data) setTotalTestCases(data.length);
         }
 
-        async function getTotalEvaluated() {
-            const data = await getNumberOfTestEvaluated();
-            if (data) setTotalEvaluated(data.length);
+        async function fetchFeedbacks() {
+            const data = await getUserFeedbacks();
+            if (data) setFeedbacks(data);
         }
 
-        
+        async function fetchEvalResponses() {
+            const data = await getOverallEvalResponses();
+            if (data) {
+                setOverallEvalResponses(data)
+                setFilteredOverallEvalResponses(data);
+            };
+        }
+
+        async function getTotalEvaluated() {
+            const data = await getNumberOfTestEvaluated();
+            if (data) {
+                setTotalEvaluated(data.length);
+                setChartData([
+                    {
+                    browser: "safari",
+                    visitors: data.length,    
+                    fill: "var(--color-safari)",
+                    },
+                ]);
+            };
+        }
 
         async function getDataPerModule() {
             const formatData: {
@@ -91,12 +122,12 @@ export default function Home() {
                 if (data) formatData.push({ module: module, total: data.length, evaluated: 0, averageEval: 0, evaluations: [] });
                 if (data2) formatData.filter(item => item.module === module)[0].evaluated = data2.length;
                 if (data3) formatData.filter(item => item.module === module)[0].averageEval = data3;
-                if (data4) formatData.filter(item => item.module === module)[0].evaluations = setChartDataFormat(module, data4);
+                if (data4) formatData.filter(item => item.module === module)[0].evaluations = setChartDataFormat(data4);
             }
             setModuleData(formatData);
         }
 
-        function setChartDataFormat(title: string, data: any[]) {
+        function setChartDataFormat(data: any[]) {
             const formatData: { title: string; rating: any; }[] = [];
             data.forEach((item, index) => {
                 formatData.push({ title: evaluations[index].title, rating: item });
@@ -108,7 +139,8 @@ export default function Home() {
         getTotalEvaluated();
         fetchEmails();
         getDataPerModule();
-        
+        fetchFeedbacks();
+        fetchEvalResponses();
     }, [])
 
     useEffect(() => {
@@ -119,19 +151,26 @@ export default function Home() {
         fetchEmails();
     }, [activeUser])
 
-    const chartData = [
-        { month: "January", desktop: 186 },
-        { month: "February", desktop: 305 },
-        { month: "March", desktop: 237 },
-        { month: "April", desktop: 273 },
-        { month: "May", desktop: 209 },
-        { month: "June", desktop: 214 },
-    ]
-    
+    useEffect(() => {
+        console.log("changing");
+        setFilteredOverallEvalResponses(overallEvalResponses.filter(item => activeFiltersOverallEval.includes(item.title)));
+    }, [activeFiltersOverallEval])
+
     const chartConfig = {
         desktop: {
             label: "Desktop",
             color: "var(--chart-1)",
+        },
+    } satisfies ChartConfig
+
+    
+    const chartConfig2 = {
+        visitors: {
+            label: "Visitors",
+        },
+        safari: {
+            label: "Safari",
+            color: "var(--chart-2)",
         },
     } satisfies ChartConfig
 
@@ -154,20 +193,123 @@ export default function Home() {
                         Your feedback is crucial in identifying issues and improving the system before full deployment.</p>
                     
                 </div>
-                <div className="grid grid-cols-3 gap-5">
-                    <div className="flex flex-col justify-between border border-gray-200 p-4 text-sm">
+                <div className="flex items-center gap-5">
+                    <div className="flex flex-1 flex-col gap-4 justify-between border border-gray-200 p-4 text-sm h-min">
                         <p>Number of Testers</p>
                         <p className='text-4xl font-bold'>{emails.length}</p>
                     </div>
-                    <div className="flex flex-col justify-between border border-gray-200 p-4 text-sm">
+                    <div className="flex flex-1 flex-col gap-4 justify-between border border-gray-200 p-4 text-sm h-min">
                         <p>Total Test Cases</p>
                         <p className='text-4xl font-bold'>{totalTestCases}</p>
                     </div>
-                    <div className="flex flex-col justify-between border border-gray-200 p-4 text-sm">
+                    {/* <div className="flex flex-col justify-between border border-gray-200 p-4 text-sm">
                         <p>Number of Test Cases Evaluated</p>
                         <p className='text-4xl font-bold'>{totalEvaluated}</p>
-                    </div>
+                    </div> */}
+                    <ChartContainer
+                        config={chartConfig2}
+                        className="mx-auto aspect-square max-h-[250px] flex-1"
+                        >
+                        <RadialBarChart
+                            className='fill-orange-600'
+                            data={chartData}
+                            endAngle={(chartData[0].visitors / totalTestCases) * 360}
+                            innerRadius={80}
+                            outerRadius={140}
+                        >
+                            <PolarGrid
+                                gridType="circle"
+                                radialLines={false}
+                                stroke="none"
+                                className="first:fill-gray-200 last:fill-white"
+                                polarRadius={[86, 74]}
+                            />
+                            <RadialBar dataKey="visitors" background />
+                            <PolarRadiusAxis tick={false} tickLine={false} axisLine={false}>
+                            <Label
+                                content={({ viewBox }) => {
+                                if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+                                    return (
+                                    <text
+                                        x={viewBox.cx}
+                                        y={viewBox.cy}
+                                        textAnchor="middle"
+                                        dominantBaseline="middle"
+                                    >
+                                        <tspan
+                                        x={viewBox.cx}
+                                        y={viewBox.cy}
+                                        className="fill-orange-600 text-4xl font-bold"
+                                        >
+                                        {chartData[0].visitors.toLocaleString()}
+                                        </tspan>
+                                        <tspan
+                                        x={viewBox.cx}
+                                        y={(viewBox.cy || 0) + 24}
+                                        className="fill-muted-foreground"
+                                        >
+                                        Evaluated
+                                        </tspan>
+                                    </text>
+                                    )
+                                }
+                                }}
+                            />
+                            </PolarRadiusAxis>
+                        </RadialBarChart>
+                    </ChartContainer>
                 </div>
+                {/* <div className='grid grid-cols-2 gap-5'>
+                    <ChartContainer
+                        config={chartConfig}
+                        className="mx-auto aspect-square w-full max-w-[250px] h-[200px]"
+                        >
+                        <RadialBarChart
+                            data={[{title: 'Total Responses', value: totalTestCases}]}
+                            endAngle={180}
+                            innerRadius={80}
+                            outerRadius={130}
+                        >
+                            <ChartTooltip
+                            cursor={false}
+                            content={<ChartTooltipContent hideLabel />}
+                            />
+                            <PolarRadiusAxis tick={false} tickLine={false} axisLine={false}>
+                            <Label
+                                content={({ viewBox }) => {
+                                if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+                                    return (
+                                    <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle">
+                                        <tspan
+                                        x={viewBox.cx}
+                                        y={(viewBox.cy || 0) - 16}
+                                        className="fill-cyan-700 text-2xl font-bold"
+                                        >
+                                        {totalTestCases}
+                                        </tspan>
+                                        <tspan
+                                        x={viewBox.cx}
+                                        y={(viewBox.cy || 0) + 4}
+                                        className="fill-muted-foreground"
+                                        >
+                                        Total Responses
+                                        </tspan>
+                                    </text>
+                                    )
+                                }
+                                }}
+                            />
+                            </PolarRadiusAxis>
+                            <RadialBar
+                            dataKey="value"
+                            stackId="a"
+                            cornerRadius={5}
+                            fill="#0e7490"
+                            className="stroke-transparent stroke-2"
+                            />
+                        </RadialBarChart>
+                    </ChartContainer>
+                </div> */}
                 <div className='flex w-full my-5'>
                     <Table className='w-full'>
                         <TableHeader>
@@ -195,7 +337,7 @@ export default function Home() {
                 <div className='grid grid-cols-3 mt-10 gap-5 -mx-[200px]'>
                     {
                         moduleData.map((data, index) => (
-                            <Card className='border border-neutral-300'>
+                            <Card key={index} className='border border-neutral-300'>
                                 <CardHeader className="items-center pb-4">
                                     <CardTitle>Overall Evaluation</CardTitle>
                                     <CardDescription>{data.module == 'promis' ? 'PROMIS' : data.module == 'inspire' ? 'InSPIRE' : 'SCORECARD'}</CardDescription>
@@ -223,98 +365,94 @@ export default function Home() {
                             </Card>
                         ))
                     }
-                    {/* {
-                        moduleData.map((data, index) => (
-                            <div className='flex flex-col gap-5'>
-                                <p className='font-semibold'>Proposal Management Information System+</p>
+                </div>
+                <div className='flex flex-col gap-5 w-full my-8'>
+                        <p>Test Responses ({feedbacks.length})</p>
+                        <Table className='w-full'>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className=' text-neutral-600'>Module</TableHead>
+                                    <TableHead className='w-[200px] text-neutral-600'>Test Title</TableHead>
+                                    <TableHead className='text-neutral-600 font-bold text-center'>Pass</TableHead>
+                                    <TableHead className='text-neutral-600 font-bold text-center'>User Experience Score</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
                                 {
-                                    evaluations.map((evaluation, index) => (
-                                        <div className='flex flex-col gap-3'>
-                                            <p>{evaluation}</p>
-                                            <div key={index} className='flex gap-2'>
-                                                {
-                                                    Array.from({ length: Math.floor(data.evaluations[index]) }, (_, index) => (
-                                                        <Star key={index} className='fill-orange-600 text-orange-600' />
-                                                    ))
-                                                }
-                                                {
-                                                    data.evaluations[index].toFixed(2) - Math.floor(data.evaluations[index]) > 0 ? (
-                                                        <div className='flex relative'>
-                                                            <Star className="fill-orange-600 text-orange-600"/>
-                                                            <div 
-                                                                style={{ width: `${(( Math.ceil(data.evaluations[index]) - data.evaluations[index].toFixed(2) )*100)}%` }} 
-                                                                className='h-6 absolute right-0 top-0 bg-neutral-50'></div>
-                                                        </div>
-                                                    ) : null
-                                                }
-                                            </div>
-                                        </div>
+                                    (seeAllTestResponses ? feedbacks :feedbacks.slice(0, 10)).map((data, index) => (
+                                        <TableRow key={index}>
+                                            <TableCell className='text-neutral-600'>{data.test_cases.test_id}</TableCell>
+                                            <TableCell className='text-neutral-600'>{data.test_cases.title}</TableCell>
+                                            <TableCell className='text-neutral-600 text-center font-bold'>{ data.test_is_pass ? <CheckCircle className='text-green-600' /> : <AlertCircle className='text-red-600'/> }</TableCell>
+                                            <TableCell>
+                                                <div className='flex gap-2'>
+                                                    {
+                                                        Array.from({ length: data.user_experience_rating }, (_, index) => (
+                                                            <Star key={index} className='fill-orange-600 text-orange-600' />
+                                                        ))
+                                                    }
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
                                     ))
                                 }
-                            </div>
-                        ))
-                    } */}
-                        {/* {
-                            moduleData[0] ? (
-                                moduleData[0].averageEval ? (
-                                    <div className='flex gap-2'>
-                                        {
-                                            Array.from({ length: moduleData[0].averageEval }, (_, index) => (
-                                                <Star key={index} className='fill-orange-600 text-orange-600' />
-                                            ))
-                                        }
-                                        {
-                                            5 - moduleData[0].averageEval.toFixed(2) > 0 ? (
-                                                <div className='flex relative'>
-                                                    <Star className="fill-orange-600 text-orange-600"/>
-                                                    <div 
-                                                        style={{ width: `${(5 - moduleData[0].averageEval.toFixed(2))*100}%` }} 
-                                                        className='h-6 absolute right-0 top-0 bg-neutral-50'></div>
-                                                </div>
-                                            ) : null
-                                        }
-                                        
-                                    </div>
-                                ) : null
-                            ) : null
-                        } */}
+                            </TableBody>
+                        </Table>
+                        <p className='underline text-xs font-medium text-right cursor-pointer' onClick={() => setSeeAllTestResponses(!seeAllTestResponses)}>{seeAllTestResponses ? 'See Less' : 'See All'}</p>
                 </div>
-                {/* <div>
-                    <select
-                        value={activeUser}
-                        onChange={(e) => setActiveUser(e.target.value)}
-                        className="w-full px-4 py-3 border border-neutral-300 focus:border-orange-600 focus:outline-none font-sans"
-                        required
-                    >
-                        {
-                            emails.map((email, index) => (
-                                <option key={index}>{email}</option>
-                            ))
-                        }
-                        
-                    </select>
-                    {
-                        Object.keys(feedbacks).map((key, index) => (
-                            <div key={index} className='flex flex-col gap-2'>
-                                <h2 className='text-2xl font-bold'>{feedbacks[key as any].test_cases.title}</h2>
-                                <div className='pl-10 flex flex-col gap-2'>
-                                    <p>Module : {feedbacks[key as any].test_cases.test_id}</p>
-                                    <p className='flex gap-3 items-center'>Pass? {feedbacks[key as any].test_is_pass ? <CheckCircle className='text-green-600' /> : <AlertCircle className='text-red-600' />}</p>
-                                    <p>Remarks</p>
-                                    <p>{feedbacks[key as any].remarks}</p>
-                                    <p>User Experience Rating</p>
-                                    <div className='flex gap-2'>
-                                        {
-                                            Array.from({ length: feedbacks[key as any].user_experience_rating }, (_, index) => (
-                                                <Star key={index} className='fill-orange-600 text-orange-600' />
-                                            ))
-                                        }
+                <div className='flex flex-col gap-5 w-full my-8'>
+                        <p>Overall Evaluation ({filteredOverallEvalResponses.length})</p>
+                        <div className='flex flex-wrap gap-5'>
+                            {
+                                evaluations.map((data, index) => (
+                                    <div 
+                                        onClick={() => {
+                                            if (activeFiltersOverallEval.includes(data.value)) {
+                                                setActiveFiltersOverallEval(activeFiltersOverallEval.filter(item => item != data.value))
+                                            } else {
+                                                setActiveFiltersOverallEval([...activeFiltersOverallEval, data.value])
+                                            }
+                                        }}
+                                        key={index} 
+                                        className={
+                                            `text-xs p-2 border border-neutral-200 cursor-pointer hover:bg-neutral-100 ${activeFiltersOverallEval.includes(data.value) ? 'border-orange-600' : ''}`
+                                        }>
+                                        <p>{data.title}</p>
                                     </div>
-                                </div>
-                            </div>
-                        ))
-                    }
-                </div> */}
+                                ))
+                            }
+                        </div>
+                        <Table className='w-full'>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className=' text-neutral-600'>Module</TableHead>
+                                    <TableHead className='w-[200px] text-neutral-600'>Criteria</TableHead>
+                                    <TableHead className='text-neutral-600 font-bold text-center'>Rating</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {
+                                    (seeOverallEvalResponses ? filteredOverallEvalResponses :filteredOverallEvalResponses.slice(0, 10)).map((data, index) => (
+                                        <TableRow key={index}>
+                                            <TableCell className='text-neutral-600'>{data.module}</TableCell>
+                                            <TableCell className='w-[300px] text-neutral-600'>{evaluations.filter(item => item.value == data.title)[0].title}</TableCell>
+                                            <TableCell>
+                                                <div className='flex gap-2'>
+                                                    {
+                                                        Array.from({ length: data.rating }, (_, index) => (
+                                                            <Star key={index} className='fill-orange-600 text-orange-600' />
+                                                        ))
+                                                    }
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className='text-neutral-600'>{data.user_email}</TableCell>
+                                        </TableRow>
+                                    ))
+                                }
+                            </TableBody>
+                        </Table>
+                        <p className='underline text-xs font-medium text-right cursor-pointer' onClick={() => setSeeOverallEvalResponses(!seeOverallEvalResponses)}>{seeOverallEvalResponses ? 'See Less' : 'See All'}</p>
+                </div>
             </div>
     </div>
     )

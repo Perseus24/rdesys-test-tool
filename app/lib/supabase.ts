@@ -138,16 +138,26 @@ export const getUserEmails =  async () => {
 
 
 
-export const getUserFeedbacks = async (email: string) => {
-    const { data, error } = await supabase
-        .from('responses')
-        .select(`
-            *,
-            test_cases(*)
-        `)
-        .eq('tester_email', email);
-        
-    return data || null;
+export const getUserFeedbacks = async (email?: string) => {
+    if (email) {
+        const { data, error } = await supabase
+            .from('responses')
+            .select(`
+                *,
+                test_cases(*)
+            `)
+            .eq('tester_email', email);
+            return data || null;
+    }
+    else {
+        const { data, error } = await supabase
+            .from('responses')
+            .select(`
+                *,
+                test_cases(*)
+            `)
+            return data || null;
+    }
 }
 
 export const getAverageOverallEval = async (module?: string) => {
@@ -157,7 +167,11 @@ export const getAverageOverallEval = async (module?: string) => {
             .select('*')
             .eq('module', module)
 
-        const average = (data?.reduce((avg, curr) => avg + curr.rating, 0) / (data?.length || 1)) || 0;
+        const distinct = data?.filter(
+            (item, index, self) =>
+                index === self.findIndex((t) => t.user_email === item.user_email && t.title === item.title)
+            );
+        const average = (distinct?.reduce((avg, curr) => avg + curr.rating, 0) / (distinct?.length || 1)) || 0;
         return average;
     }
 }
@@ -169,9 +183,14 @@ export const getOverallEvals = async (module?: string) => {
             .from('overall_evaluation')
             .select('*')
             .eq('module', module)
+
+        const distinct = data?.filter(
+            (item, index, self) =>
+                index === self.findIndex((t) => t.user_email === item.user_email && t.title === item.title)
+            );
         
         const averages = evaluations.map( evaluation => {
-                const matchingData = data?.filter(item => item.title === evaluation);
+                const matchingData = distinct?.filter(item => item.title === evaluation);
                 const sum = matchingData?.reduce((acc, curr) => acc + curr.rating, 0) || 0;
                 if (matchingData) return matchingData?.length > 0 ? sum / matchingData.length : 0;
                 return 0;
@@ -179,6 +198,19 @@ export const getOverallEvals = async (module?: string) => {
         )
         return averages;
     }
+}
+
+
+export const getOverallEvalResponses = async (module?: string) => {
+    const { data, error } = await supabase
+        .from('overall_evaluation')
+        .select('*')
+        
+    const distinct = data?.filter(
+            (item, index, self) =>
+                index === self.findIndex((t) => t.user_email === item.user_email && t.title === item.title && t.module === item.module)
+            );
+    return distinct || null;
 }
 export const validateImageFile = (file: File): { valid: boolean; error?: string } => {
     if (!file.type.startsWith('image/')) {
