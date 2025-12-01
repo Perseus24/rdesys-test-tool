@@ -56,6 +56,66 @@ export const getStepsToTestCases = async (testId: number) => {
     return data || null;
 }
 
+export const getTotalTestCases = async (module?: string) => {
+
+    if (module) {
+        switch (module) {
+            case 'promis': module = 'PRMS'; break;
+            case 'inspire': module = 'INSPR'; break;
+            case 'scorecard': module = 'SCRD'; break;
+        }
+
+        const { data, error } = await supabase
+            .from('test_cases')
+            .select('test_id')
+            .like('test_id', `${module}%`)
+            .order('order', { ascending: true });
+        
+        return data || null;
+    }
+
+    const { data, error } = await supabase
+        .from('test_cases')
+        .select('test_id')
+        .order('order', { ascending: true });
+        
+    return data || null;
+}
+
+export const getNumberOfTestEvaluated = async (module?: string) => {
+
+    if (module) {
+        switch (module) {
+            case 'promis': module = 'PRMS'; break;
+            case 'inspire': module = 'INSPR'; break;
+            case 'scorecard': module = 'SCRD'; break;
+        }
+
+        const { data, error } = await supabase
+            .from('responses')
+            .select(`
+                *,
+                test_cases!inner(*)
+            `)
+            .like('test_cases.test_id', `${module}%`)
+        const distinctTestIds = [...new Set(data?.map(r => r.test_id))];
+        
+        return distinctTestIds || null;
+    }
+
+    const { data, error } = await supabase
+        .from('responses')
+        .select(`
+            *,
+            test_cases(*)
+        `)
+        .select('test_id');
+        
+    
+    const distinctTestIds = [...new Set(data?.map(r => r.test_id))];
+
+    return distinctTestIds || null;
+}
 
 export const fetchPreviousModuleEval = async (email: string, module: string) => {
     const { data, error } = await supabase
@@ -76,6 +136,8 @@ export const getUserEmails =  async () => {
     return emails || null;
 }
 
+
+
 export const getUserFeedbacks = async (email: string) => {
     const { data, error } = await supabase
         .from('responses')
@@ -86,6 +148,37 @@ export const getUserFeedbacks = async (email: string) => {
         .eq('tester_email', email);
         
     return data || null;
+}
+
+export const getAverageOverallEval = async (module?: string) => {
+    if (module) {
+        const { data, error } = await supabase
+            .from('overall_evaluation')
+            .select('*')
+            .eq('module', module)
+
+        const average = (data?.reduce((avg, curr) => avg + curr.rating, 0) / (data?.length || 1)) || 0;
+        return average;
+    }
+}
+
+export const getOverallEvals = async (module?: string) => {
+    const evaluations = ['easeOfUse', 'speedAndResponsiveness', 'clarity', 'usefulness', 'overallSatisfaction'];
+    if (module) {
+        const { data, error } = await supabase
+            .from('overall_evaluation')
+            .select('*')
+            .eq('module', module)
+        
+        const averages = evaluations.map( evaluation => {
+                const matchingData = data?.filter(item => item.title === evaluation);
+                const sum = matchingData?.reduce((acc, curr) => acc + curr.rating, 0) || 0;
+                if (matchingData) return matchingData?.length > 0 ? sum / matchingData.length : 0;
+                return 0;
+            }
+        )
+        return averages;
+    }
 }
 export const validateImageFile = (file: File): { valid: boolean; error?: string } => {
     if (!file.type.startsWith('image/')) {
