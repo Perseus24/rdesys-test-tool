@@ -212,6 +212,21 @@ export const getOverallEvalResponses = async (module?: string) => {
             );
     return distinct || null;
 }
+
+export const fetchResponses = async (module: string) => {
+    const { data, error } = await supabase
+        .from('responses')
+        .select(’
+                *,
+                test_cases!inner(*)
+        ’)
+        .eq('test_cases.test_id', 'PRMS');
+
+    return data || [];
+
+
+    
+}
 export const validateImageFile = (file: File): { valid: boolean; error?: string } => {
     if (!file.type.startsWith('image/')) {
         return { valid: false, error: 'Please select an image file' }
