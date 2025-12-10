@@ -285,7 +285,6 @@ export const fetchModuleComments = async (module?: string) => {
     return data || null;
 }
 
-
 export const validateImageFile = (file: File): { valid: boolean; error?: string } => {
     if (!file.type.startsWith('image/')) {
         return { valid: false, error: 'Please select an image file' }
