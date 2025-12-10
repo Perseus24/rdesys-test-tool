@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { createBrowserClient } from "@supabase/ssr"
+import { use } from 'react';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -32,18 +33,34 @@ export const submitOverallForm = async (data: any) => {
     return null;
 }
 
-export const getTestCases = async (userType: string, testId: string) => {
-    const { data, error } = await supabase
-        .from('test_cases')
-        .select('*')
-        .eq('user_type', userType)
-        .like('test_id', `${testId}%`)
-        .order('order', { ascending: true });
+export const getTestCases = async (userType?: string, testId?: string) => {
+    console.log("userType", userType);
+    if (userType == 'null') {
+        const { data, error } = await supabase
+            .from('test_cases')
+            .select('*')
+            .like('test_id', `${testId}%`)
+            .order('order', { ascending: true });
 
-    if (error) {
-        console.error('Error fetching test cases:', error.message);
+        if (error) {
+            console.error('Error fetching test cases:', error.message);
+        }
+        return data || [];
+    } else {
+        const { data, error } = await supabase
+            .from('test_cases')
+            .select('*')
+            .eq('user_type', userType)
+            .like('test_id', `${testId}%`)
+            .order('order', { ascending: true });
+
+        if (error) {
+            console.error('Error fetching test cases:', error.message);
+        }
+        return data || [];
     }
-    return data || [];
+
+    
 }
 
 export const getStepsToTestCases = async (testId: number) => {
@@ -213,20 +230,62 @@ export const getOverallEvalResponses = async (module?: string) => {
     return distinct || null;
 }
 
-export const fetchResponses = async (module: string) => {
+
+export const getUniqueTestersPerModule = async (module?: string) => {
     const { data, error } = await supabase
         .from('responses')
-        .select(’
-                *,
-                test_cases!inner(*)
-        ’)
-        .eq('test_cases.test_id', 'PRMS');
-
-    return data || [];
-
-
-    
+        .select(`
+            *,
+            test_cases!inner(*)
+        `)
+        .eq('test_id', module)
+        
+    const emails = [...new Set(data?.map(row => row.tester_email))];
+    return emails || null;
 }
+
+export const getResponsePerCase = async (module?: string, testId?: string) => {
+    const { data, error } = await supabase
+        .from('responses')
+        .select(`
+            *,
+            test_cases!inner(*)
+        `)
+        .eq('test_cases.id', testId)
+
+    console.log("dadasd", data, module, testId);
+        
+    return data || null;
+}
+
+export const constructBarGraphPromisTests = async (module?: string) => {
+    const {data, error} = await supabase
+        .from('test_cases')
+        .select(`
+            *,
+            responses!inner(*)
+        `)
+        .like('test_id', `${module}%`)
+    return data || null;
+}
+
+export const fetchModuleComments = async (module?: string) => {
+    const { data, error } = await supabase
+        .from('responses')
+        .select(`
+            *,
+            test_cases!inner(*)
+        `)
+        .neq('remarks', "")
+        .like('test_cases.test_id', `${module}%`);
+
+        console.log("fetchModuleComments", data);
+
+        
+    return data || null;
+}
+
+
 export const validateImageFile = (file: File): { valid: boolean; error?: string } => {
     if (!file.type.startsWith('image/')) {
         return { valid: false, error: 'Please select an image file' }

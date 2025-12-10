@@ -22,19 +22,18 @@ import {
     CardFooter,
     CardHeader,
     CardTitle,
-} from "@/components/ui/card";import {
+} from "@/components/ui/card";
+import {
     ChartConfig,
     ChartContainer,
     ChartTooltip,
     ChartTooltipContent,
-} from "@/components/ui/chart"
-import {
-    Collapsible,
-    CollapsibleContent,
-    CollapsibleTrigger,
-} from "@/components/ui/collapsible"
+} from "@/components/ui/chart";
+
+import { useSearchParams } from 'next/navigation';
 
 export default function Home() {
+    const searchParams = useSearchParams();
     const evaluations = [{
         title: 'Ease of Use',
         value: 'easeOfUse',
@@ -152,7 +151,6 @@ export default function Home() {
     }, [activeUser])
 
     useEffect(() => {
-        console.log("changing");
         setFilteredOverallEvalResponses(overallEvalResponses.filter(item => activeFiltersOverallEval.includes(item.title)));
     }, [activeFiltersOverallEval])
 
@@ -174,7 +172,16 @@ export default function Home() {
         },
     } satisfies ChartConfig
 
-    
+    // useEffect(() => {
+    //     if (searchParams.get('pass') !== 'rdesysadmin') {
+    //         window.location.href = 'https://rdesys-test-tool.vercel.app/';
+    //     }
+    // }, [searchParams]);
+
+    // if (searchParams.get('pass') !== '123') {
+    //     return null;
+    // }
+
     return (
         <div className='min-h-screen bg-neutral-50 text-neutral-900 font-mono'>
             <div className="fixed inset-0 opacity-[0.015] pointer-events-none" 
@@ -372,9 +379,10 @@ export default function Home() {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead className=' text-neutral-600'>Module</TableHead>
-                                    <TableHead className='w-[200px] text-neutral-600'>Test Title</TableHead>
+                                    <TableHead className='w-[350px] text-neutral-600'>Test Title</TableHead>
                                     <TableHead className='text-neutral-600 font-bold text-center'>Pass</TableHead>
                                     <TableHead className='text-neutral-600 font-bold text-center'>User Experience Score</TableHead>
+                                    <TableHead className='text-neutral-600 font-bold text-center'>Email</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -382,7 +390,7 @@ export default function Home() {
                                     (seeAllTestResponses ? feedbacks :feedbacks.slice(0, 10)).map((data, index) => (
                                         <TableRow key={index}>
                                             <TableCell className='text-neutral-600'>{data.test_cases.test_id}</TableCell>
-                                            <TableCell className='text-neutral-600'>{data.test_cases.title}</TableCell>
+                                            <TableCell className='w-[350px] text-neutral-600'>{data.test_cases.title}</TableCell>
                                             <TableCell className='text-neutral-600 text-center font-bold'>{ data.test_is_pass ? <CheckCircle className='text-green-600' /> : <AlertCircle className='text-red-600'/> }</TableCell>
                                             <TableCell>
                                                 <div className='flex gap-2'>
@@ -393,6 +401,7 @@ export default function Home() {
                                                     }
                                                 </div>
                                             </TableCell>
+                                            <TableCell className='text-neutral-600'>{data.tester_email}</TableCell>
                                         </TableRow>
                                     ))
                                 }
