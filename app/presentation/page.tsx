@@ -272,7 +272,34 @@ export default function Presentation() {
             label: "Is Fail",
             color: "var(--chart-1)",
         },
-} satisfies ChartConfig
+        // next features
+    } satisfies ChartConfig
+
+    const [nextFeaturesIndex, setNextFeaturesIndex] = useState(-1);
+    const nextFeatureIndexClick = (index: number) => {
+        setNextFeaturesIndex(index + 1);
+    };
+
+    // Handle keyboard events
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "ArrowRight") {
+            // Increment index
+            setNextFeaturesIndex((prevIndex) => prevIndex + 1);
+        } else if (e.key === "ArrowLeft") {
+            // Decrement index (optional)
+            setNextFeaturesIndex((prevIndex) => Math.max(prevIndex - 1, 0));
+        }
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+
+        // Clean up
+        return () => {
+        window.removeEventListener("keydown", handleKeyDown);
+        };
+    }, []);
+
     return (
         <div className="flex flex-col font-mono">
             <div className="fixed inset-0 opacity-[0.5] pointer-events-none" 
@@ -534,7 +561,7 @@ export default function Presentation() {
                 <div className="text-cyan-500 font-bold tracking-wide text-6xl mb-16">InSPIRE</div>
                 <div className="flex flex-wrap gap-20">
                     <div className="flex flex-col gap-3 items-center justify-center">
-                        <p className="text-6xl font-bold">1</p>
+                        <p className="text-6xl font-bold">2</p>
                         <p>Testers</p>
                     </div>
                     <div className="flex flex-col gap-3 items-center justify-center">
@@ -812,13 +839,45 @@ export default function Presentation() {
             <div className="flex flex-col h-screen items-center justify-center max-w-4xl mx-auto">
                 <p className="text-xl">Features included for Alpha Testing v2.0</p>
             </div>
-            <div className="flex flex-col h-screen items-center justify-center max-w-4xl mx-auto relative">
+            <div className="flex flex-col h-screen items-center justify-center w-full mx-auto relative">
                 <div className="text-orange-500 font-bold tracking-wide text-9xl mb-6"><span className="text-cyan-500">RDE</span>Sys</div>
                 <div className="text-orange-500 font-bold tracking-wide text-6xl">ProMIS<sup>+</sup></div>
-                <p className="absolute top-20 left-10 text-lg text-black rotate-12">
-                    Rotated Text
-                </p>
 
+                <p className={`
+                    absolute left-[300px] bottom-[200px] text-lg text-black rotate-29 ${nextFeaturesIndex > 0 ? '' : 'hidden'}    
+                `}>
+                    Stage 1 Fixes
+                </p>
+                <p className={
+                    `
+                    absolute left-[600px] bottom-[200px] text-lg text-black rotate-29 ${nextFeaturesIndex > 1 ? '' : 'hidden'}    
+                `}>
+                    Stage 6: RDMD Final Submission fixes
+                </p>
+                <p  className="absolute left-[700px] bottom-10 text-lg text-black -rotate-12">
+                    Stage 6 RDMD Admin Edit
+                </p>
+                <p className="absolute left-[900px] top-[400px] text-lg text-black rotate-20">
+                    Stage 7: WFP Submission
+                </p>
+                <p className="absolute left-[300px] bottom-[400px] text-lg text-black -rotate-14">
+                    Stage 7: WFP Admin Approval
+                </p>
+                <p className="absolute right-[300px] top-[200px] text-lg text-black -rotate-29">
+                    Stage 6: Form UI Redesign
+                </p>
+                <p className="absolute left-[800px] top-[100px] text-lg text-black rotate-12">
+                    Externally Funded Form
+                </p>
+                <p className="absolute right-[50px] top-[50px] text-lg text-black -rotate-1">
+                    Special Funded Form
+                </p>
+                <p className="absolute left-[50px] bottom-[500px] text-lg text-black -rotate-1">
+                    Graduate Form
+                </p>
+                <p className="absolute right-[50px] bottom-[200px] text-lg text-black -rotate-20">
+                    Special/External Form Admin Approval
+                </p>
             </div>
         </div>
     )
