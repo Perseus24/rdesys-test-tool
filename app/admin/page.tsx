@@ -30,10 +30,8 @@ import {
     ChartTooltipContent,
 } from "@/components/ui/chart";
 
-import { useSearchParams } from 'next/navigation';
 
 export default function Home() {
-    const searchParams = useSearchParams();
     const evaluations = [{
         title: 'Ease of Use',
         value: 'easeOfUse',
