@@ -230,7 +230,6 @@ export const getOverallEvalResponses = async (module?: string) => {
     return distinct || null;
 }
 
-<<<<<<< HEAD
 
 export const getUniqueTestersPerModule = async (module?: string) => {
     const { data, error } = await supabase
@@ -286,23 +285,6 @@ export const fetchModuleComments = async (module?: string) => {
     return data || null;
 }
 
-
-=======
-export const fetchResponses = async (module: string) => {
-    const { data, error } = await supabase
-        .from('responses')
-        .select(’
-                *,
-                test_cases!inner(*)
-        ’)
-        .eq('test_cases.test_id', 'PRMS');
-
-    return data || [];
-
-
-    
-}
->>>>>>> afc320cd1464db338d229471bd9f4562e796a511
 export const validateImageFile = (file: File): { valid: boolean; error?: string } => {
     if (!file.type.startsWith('image/')) {
         return { valid: false, error: 'Please select an image file' }
