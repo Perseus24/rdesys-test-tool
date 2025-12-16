@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from "react";
-import { constructBarGraphPromisTests, fetchModuleComments, getAverageOverallEval, getNumberOfTestEvaluated, getOverallEvalResponses, getOverallEvals, getResponsePerCase, getTestCases, getTotalTestCases, getUserEmails, getUserFeedbacks } from "../lib/supabase";
+import { constructBarGraphPromisTests, fetchModuleComments, getAverageOverallEval, getNumberOfTestEvaluated, getOverallEvalResponses, getOverallEvals, getResponsePerCase, getTestCases, getTesterProgress, getTotalTestCases, getUserEmails, getUserFeedbacks } from "../lib/supabase";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { ChartConfig, ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Bar, BarChart, CartesianGrid, Label, Pie, PieChart, PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, RadialBar, RadialBarChart, XAxis } from "recharts";
@@ -399,6 +399,81 @@ export default function Presentation() {
             return '';
         }
     };
+
+
+    interface TestCase {
+    id: number;
+    test_id: string;
+    title: string | null;
+    description: string | null;
+    user_type: string;
+    order: number | null;
+    phase: number | null;
+    }
+
+    interface SystemBreakdown {
+    PRMS: { completed: number; total: number };
+    SCRD: { completed: number; total: number };
+    INSPR: { completed: number; total: number };
+    }
+
+    interface TesterProgress {
+    email: string;
+    name: string;
+    role: string;
+    answered: TestCase[];
+    unanswered: TestCase[];
+    totalTests: number;
+    completedTests: number;
+    completionRate: number;
+    systemBreakdown: SystemBreakdown;
+    }
+
+
+    const [testerProgress, setTesterProgress] = useState<TesterProgress[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [expandedTester, setExpandedTester] = useState<string | null>(null);
+    const [filterSystem, setFilterSystem] = useState<string>('all');
+
+    useEffect(() => {
+        const fetchProgress = async () => {
+        const data = await getTesterProgress();
+        if (data) {
+            setTesterProgress(data);
+        }
+        setLoading(false);
+        };
+
+        fetchProgress();
+    }, []);
+
+    const getSystemName = (code: string) => {
+        switch (code) {
+        case 'PRMS': return 'PROMIS+';
+        case 'SCRD': return 'Scorecard';
+        case 'INSPR': return 'InSPIRE';
+        default: return code;
+        }
+    };
+
+    const filteredTesters = filterSystem === 'all' 
+        ? testerProgress 
+        : testerProgress.map(tester => {
+            const systemTests = tester.answered.filter(t => t.test_id?.startsWith(filterSystem));
+            const systemUnanswered = tester.unanswered.filter(t => t.test_id?.startsWith(filterSystem));
+            const systemTotal = systemTests.length + systemUnanswered.length;
+            
+            return {
+            ...tester,
+            answered: systemTests,
+            unanswered: systemUnanswered,
+            completedTests: systemTests.length,
+            totalTests: systemTotal,
+            completionRate: systemTotal > 0 ? Math.round((systemTests.length / systemTotal) * 100) : 0
+            };
+        });
+
+
 
     return (
         <div className="flex flex-col font-mono">
@@ -1017,6 +1092,231 @@ export default function Presentation() {
                     }
                 </div>
             </div>
+            <div className="max-w-6xl mx-auto p-6">
+                {/* Header */}
+                <div className="mb-8">
+                    <h1 className="text-2xl font-bold text-neutral-900 mb-2">
+                    Alpha Tester Progress
+                    </h1>
+                    <p className="text-neutral-600 text-sm">
+                    Overview of test completion status for all alpha testers
+                    </p>
+                </div>
+
+                {/* System Filter */}
+                <div className="mb-6 flex gap-2">
+                    <button
+                    onClick={() => setFilterSystem('all')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        filterSystem === 'all'
+                        ? 'bg-neutral-900 text-white'
+                        : 'bg-white border border-neutral-200 text-neutral-700 hover:bg-neutral-50'
+                    }`}
+                    >
+                    All Systems
+                    </button>
+                    <button
+                    onClick={() => setFilterSystem('PRMS')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        filterSystem === 'PRMS'
+                        ? 'bg-neutral-900 text-white'
+                        : 'bg-white border border-neutral-200 text-neutral-700 hover:bg-neutral-50'
+                    }`}
+                    >
+                    PROMIS+
+                    </button>
+                    <button
+                    onClick={() => setFilterSystem('SCRD')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        filterSystem === 'SCRD'
+                        ? 'bg-neutral-900 text-white'
+                        : 'bg-white border border-neutral-200 text-neutral-700 hover:bg-neutral-50'
+                    }`}
+                    >
+                    Scorecard
+                    </button>
+                    <button
+                    onClick={() => setFilterSystem('INSPR')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        filterSystem === 'INSPR'
+                        ? 'bg-neutral-900 text-white'
+                        : 'bg-white border border-neutral-200 text-neutral-700 hover:bg-neutral-50'
+                    }`}
+                    >
+                    InSPIRE
+                    </button>
+                </div>
+
+                {/* Stats Summary */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div className="bg-white border border-neutral-200 rounded-lg p-4">
+                    <p className="text-neutral-500 text-sm mb-1">Total Testers</p>
+                    <p className="text-2xl font-semibold text-neutral-900">{testerProgress.length}</p>
+                    </div>
+                    <div className="bg-white border border-neutral-200 rounded-lg p-4">
+                    <p className="text-neutral-500 text-sm mb-1">Average Completion</p>
+                    <p className="text-2xl font-semibold text-neutral-900">
+                        {testerProgress.length > 0
+                        ? Math.round(
+                            filteredTesters.reduce((acc, curr) => acc + curr.completionRate, 0) / 
+                            filteredTesters.length
+                            )
+                        : 0}%
+                    </p>
+                    </div>
+                    <div className="bg-white border border-neutral-200 rounded-lg p-4">
+                    <p className="text-neutral-500 text-sm mb-1">Total Test Cases</p>
+                    <p className="text-2xl font-semibold text-neutral-900">
+                        {filterSystem === 'all'
+                        ? testerProgress[0]?.totalTests || 0
+                        : filteredTesters[0]?.totalTests || 0}
+                    </p>
+                    </div>
+                    <div className="bg-white border border-neutral-200 rounded-lg p-4">
+                    <p className="text-neutral-500 text-sm mb-1">Tests Completed</p>
+                    <p className="text-2xl font-semibold text-neutral-900">
+                        {filteredTesters.reduce((acc, curr) => acc + curr.completedTests, 0)}
+                    </p>
+                    </div>
+                </div>
+
+                {/* Tester List */}
+                <div className="space-y-3">
+                    {filteredTesters.map((tester) => (
+                    <div
+                        key={tester.email}
+                        className="bg-white border border-neutral-200 rounded-lg overflow-hidden"
+                    >
+                        {/* Tester Header */}
+                        <button
+                        onClick={() => setExpandedTester(
+                            expandedTester === tester.email ? null : tester.email
+                        )}
+                        className="w-full p-4 flex items-center justify-between hover:bg-neutral-50 transition-colors"
+                        >
+                        <div className="flex items-center gap-4 flex-1">
+                            <div className="w-10 h-10 rounded-full bg-neutral-200 flex items-center justify-center text-neutral-600 font-semibold">
+                            {tester.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="text-left">
+                            <p className="font-medium text-neutral-900">{tester.name}</p>
+                            <p className="text-xs text-neutral-500">{tester.role} • {tester.email}</p>
+                            <p className="text-sm text-neutral-600 mt-1">
+                                {tester.completedTests} of {tester.totalTests} tests completed
+                            </p>
+                            </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-4">
+                            {/* System breakdown badges (only show when viewing all) */}
+                            {filterSystem === 'all' && (
+                            <div className="hidden lg:flex gap-2">
+                                {Object.entries(tester.systemBreakdown).map(([system, data]) => (
+                                <div key={system} className="text-xs">
+                                    <span className="text-neutral-500">{system}:</span>
+                                    <span className="ml-1 font-medium text-neutral-700">
+                                    {data.completed}/{data.total}
+                                    </span>
+                                </div>
+                                ))}
+                            </div>
+                            )}
+
+                            {/* Progress Bar */}
+                            <div className="hidden md:flex items-center gap-3">
+                            <div className="w-32 bg-neutral-200 rounded-full h-2">
+                                <div
+                                className="bg-neutral-900 h-2 rounded-full transition-all"
+                                style={{ width: `${tester.completionRate}%` }}
+                                />
+                            </div>
+                            <span className="text-sm font-medium text-neutral-700 w-12">
+                                {tester.completionRate}%
+                            </span>
+                            </div>
+
+                            {/* Expand Icon */}
+                            <svg
+                            className={`w-5 h-5 text-neutral-400 transition-transform ${
+                                expandedTester === tester.email ? 'rotate-180' : ''
+                            }`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                            >
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 9l-7 7-7-7"
+                            />
+                            </svg>
+                        </div>
+                        </button>
+
+                        {/* Expanded Content */}
+                        {expandedTester === tester.email && (
+                        <div className="border-t border-neutral-200 p-4 bg-neutral-50">
+                            <div className="grid md:grid-cols-2 gap-4">
+                            {/* Completed Tests */}
+                            <div>
+                                <h3 className="font-medium text-neutral-900 mb-3 flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-neutral-900"></span>
+                                Completed Tests ({tester.answered.length})
+                                </h3>
+                                {tester.answered.length > 0 ? (
+                                <ul className="space-y-2">
+                                    {tester.answered.map((test) => (
+                                    <li
+                                        key={test.id}
+                                        className="text-sm text-neutral-700 pl-4 border-l-2 border-neutral-300"
+                                    >
+                                        <span className="font-mono text-xs text-neutral-500">{test.test_id}</span>
+                                        {test.title && <span className="ml-2">{test.title}</span>}
+                                    </li>
+                                    ))}
+                                </ul>
+                                ) : (
+                                <p className="text-sm text-neutral-500 italic">No tests completed yet</p>
+                                )}
+                            </div>
+
+                            {/* Pending Tests */}
+                            <div>
+                                <h3 className="font-medium text-neutral-900 mb-3 flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-neutral-400"></span>
+                                Pending Tests ({tester.unanswered.length})
+                                </h3>
+                                {tester.unanswered.length > 0 ? (
+                                <ul className="space-y-2">
+                                    {tester.unanswered.map((test) => (
+                                    <li
+                                        key={test.id}
+                                        className="text-sm text-neutral-500 pl-4 border-l-2 border-neutral-200"
+                                    >
+                                        <span className="font-mono text-xs text-neutral-400">{test.test_id}</span>
+                                        {test.title && <span className="ml-2">{test.title}</span>}
+                                    </li>
+                                    ))}
+                                </ul>
+                                ) : (
+                                <p className="text-sm text-neutral-500 italic">All tests completed! 🎉</p>
+                                )}
+                            </div>
+                            </div>
+                        </div>
+                        )}
+                    </div>
+                    ))}
+                </div>
+
+                {/* Empty State */}
+                {testerProgress.length === 0 && (
+                    <div className="text-center py-12 text-neutral-500">
+                    No tester data available yet
+                    </div>
+                )}
+                </div>
             <div className="flex flex-col h-screen items-center justify-center max-w-4xl mx-auto">
                 <div className="text-orange-500 font-bold tracking-wide text-9xl mb-6"><span className="text-cyan-500">RDE</span>Sys</div>
             </div>

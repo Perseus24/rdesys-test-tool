@@ -373,3 +373,124 @@ export const deleteImage = async (fileUrl: string): Promise<{
         return { success: false, error: error.message || 'Error deleting file' }
     }
 }
+
+// get all test cases that were answered by the user
+export const getTesterProgress = async () => {
+    // Get all test cases
+    const { data: allTestCases, error: testCasesError } = await supabase
+        .from('test_cases')
+        .select('*')
+        .order('order', { ascending: true })
+        .eq('phase', 1);
+    
+    if (testCasesError) {
+        console.error('Error fetching test cases:', testCasesError);
+        return null;
+    }
+
+    // Get all responses with test case info
+    const { data: responses, error: responsesError } = await supabase
+        .from('responses')
+        .select(`
+            *,
+            test_cases(*)
+        `);
+    
+    if (responsesError) {
+        console.error('Error fetching responses:', responsesError);
+        return null;
+    }
+
+    // Get unique testers
+    const uniqueTesters = [...new Set(responses?.map(r => r.tester_email))];
+
+    // Map progress for each tester
+    const testerProgress = uniqueTesters.map(email => {
+        const testerResponses = responses.filter(r => r.tester_email === email);
+        const answeredTestIds = testerResponses.map(r => r.test_id);
+        
+        const answeredTests = allTestCases.filter(tc => answeredTestIds.includes(tc.id));
+        const unansweredTests = allTestCases.filter(tc => !answeredTestIds.includes(tc.id));
+        
+        // Get system breakdown (PRMS, SCRD, INSPR)
+        const systemBreakdown = {
+            PRMS: {
+                completed: answeredTests.filter(t => t.test_id?.startsWith('PRMS')).length,
+                total: allTestCases.filter(t => t.test_id?.startsWith('PRMS')).length
+            },
+            SCRD: {
+                completed: answeredTests.filter(t => t.test_id?.startsWith('SCRD')).length,
+                total: allTestCases.filter(t => t.test_id?.startsWith('SCRD')).length
+            },
+            INSPR: {
+                completed: answeredTests.filter(t => t.test_id?.startsWith('INSPR')).length,
+                total: allTestCases.filter(t => t.test_id?.startsWith('INSPR')).length
+            }
+        };
+        
+        return {
+            email,
+            name: testerResponses[0]?.tester_name || email,
+            role: testerResponses[0]?.tester_role || 'Tester',
+            answered: answeredTests,
+            unanswered: unansweredTests,
+            totalTests: allTestCases.length,
+            completedTests: answeredTests.length,
+            completionRate: Math.round((answeredTests.length / allTestCases.length) * 100),
+            systemBreakdown
+        };
+    });
+
+    return testerProgress;
+}
+
+// Optional: Get progress for a specific system
+export const getTesterProgressBySystem = async (system: 'PRMS' | 'SCRD' | 'INSPR') => {
+    const { data: allTestCases, error: testCasesError } = await supabase
+        .from('test_cases')
+        .select('*')
+        .ilike('test_id', `${system}%`)
+        .order('order', { ascending: true });
+    
+    if (testCasesError) {
+        console.error('Error fetching test cases:', testCasesError);
+        return null;
+    }
+
+    const { data: responses, error: responsesError } = await supabase
+        .from('responses')
+        .select(`
+            *,
+            test_cases!inner(*)
+        `)
+        .ilike('test_cases.test_id', `${system}%`);
+    
+    if (responsesError) {
+        console.error('Error fetching responses:', responsesError);
+        return null;
+    }
+
+    const uniqueTesters = [...new Set(responses?.map(r => r.tester_email))];
+
+    const testerProgress = uniqueTesters.map(email => {
+        const testerResponses = responses.filter(r => r.tester_email === email);
+        const answeredTestIds = testerResponses.map(r => r.test_id);
+        
+        const answeredTests = allTestCases.filter(tc => answeredTestIds.includes(tc.id));
+        const unansweredTests = allTestCases.filter(tc => !answeredTestIds.includes(tc.id));
+        
+        return {
+            email,
+            name: testerResponses[0]?.tester_name || email,
+            role: testerResponses[0]?.tester_role || 'Tester',
+            answered: answeredTests,
+            unanswered: unansweredTests,
+            totalTests: allTestCases.length,
+            completedTests: answeredTests.length,
+            completionRate: Math.round((answeredTests.length / allTestCases.length) * 100),
+            system
+        };
+    });
+
+    return testerProgress;
+}
