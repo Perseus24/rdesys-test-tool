@@ -33,14 +33,14 @@ export const submitOverallForm = async (data: any) => {
     return null;
 }
 
-export const getTestCases = async (userType?: string, testId?: string) => {
-    console.log("userType", userType);
+export const getTestCases = async (userType?: string, testId?: string, phase?: number) => {
     if (userType == 'null') {
         const { data, error } = await supabase
             .from('test_cases')
             .select('*')
             .like('test_id', `${testId}%`)
-            .order('order', { ascending: true });
+            .order('order', { ascending: true })
+            .eq('phase', phase);
 
         if (error) {
             console.error('Error fetching test cases:', error.message);
@@ -52,7 +52,8 @@ export const getTestCases = async (userType?: string, testId?: string) => {
             .select('*')
             .eq('user_type', userType)
             .like('test_id', `${testId}%`)
-            .order('order', { ascending: true });
+            .order('order', { ascending: true })
+            .eq('phase', phase);
 
         if (error) {
             console.error('Error fetching test cases:', error.message);
@@ -86,7 +87,8 @@ export const getTotalTestCases = async (module?: string) => {
             .from('test_cases')
             .select('test_id')
             .like('test_id', `${module}%`)
-            .order('order', { ascending: true });
+            .order('order', { ascending: true })
+            .eq('phase', 1);
         
         return data || null;
     }

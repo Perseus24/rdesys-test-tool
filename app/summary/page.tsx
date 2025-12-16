@@ -138,7 +138,7 @@ export default function Presentation() {
         async function fetchPromisTestCases() {
             const modules = ['PRMS', 'INSPR', 'SCRD'];
             modules.map(async (item) => {
-                const data = await getTestCases('null', item, 1);
+                const data = await getTestCases('null', item);
                 if (data) {
                     if (item === 'PRMS') setPromisTestCases(data);
                     if (item === 'INSPR') setInspireTestCases(data);
@@ -300,106 +300,6 @@ export default function Presentation() {
         };
     }, []);
 
-    const feedbackData = [
-    {
-      category: "Dashboard & Status Issues",
-      severity: "high",
-      items: [
-        "After approval of resubmitted revised proposal, no status displayed on dashboard field (shows as 'reviewed' only in details)",
-        "Search, columns, sort, and checkbox buttons selectable but non-functional",
-        "Reviewed proposals should remain visible in dashboard with status icons ('reviewed' or 'returned') for office reporting"
-      ]
-    },
-    {
-      category: "Login & Navigation",
-      severity: "low",
-      items: [
-        "Log-in functionality works smoothly with no issues",
-        "Sidebar functionality works correctly (opens and closes properly)"
-      ]
-    },
-    {
-      category: "Content Display Issues",
-      severity: "medium",
-      items: [
-        "Research objectives displayed separately after each comma in sentences/paragraphs"
-      ]
-    },
-    {
-      category: "Budgetary Requirements",
-      severity: "high",
-      items: [
-        "Gets automatically checked (green) even while checking other tabs",
-        "Needs prompt to enter final budget to prevent premature checking",
-        "Should differentiate between NO BUDGET proposals vs. skipped steps",
-        "Remove 'PHP' and '.00' from entry field - difficult to enter amounts (format should only display after completion)"
-      ]
-    },
-    {
-      category: "File Upload Requirements",
-      severity: "medium",
-      items: [
-        "Endorsement to IPMD/RDMD: limit to DOCX and PDF only",
-        "Similarity Report (Turnitin): limit to PDF only",
-        "AI Writing Report (Turnitin): limit to PDF only",
-        "HGDG Form: limit to XLSX and PDF only",
-        "Increase maximum file size allowed for uploads",
-        "Set HGDG score to start at ZERO and reject if ZERO is entered"
-      ]
-    },
-    {
-      category: "Form Validation Issues",
-      severity: "high",
-      items: [
-        "Target Beneficiaries: add instruction 'Press ENTER to input your response'",
-        "Submission pushes through even with errors",
-        "Program Level should require minimum 4 studies, Project Level minimum 2 studies (currently accepts 1 study)",
-        "Mobile number accepts incomplete entries (e.g., '09' only) - needs digit count validation and format example"
-      ]
-    },
-    {
-      category: "Premature Button Activation",
-      severity: "medium",
-      items: [
-        "Stage 6 'Submit' link is active before reaching that stage (shows server error if clicked)",
-        "Stage 7 has clickable 'click' element when it shouldn't"
-      ]
-    },
-    {
-      category: "Save Functionality",
-      severity: "low",
-      items: [
-        "Users can save drafts except for special categories (e.g., Externally funded research)",
-        "Users can submit proposal forms of any type"
-      ]
-    }
-    ];
-    const getSeverityColor = (severity: string) => {
-        switch (severity) {
-        case 'high':
-            return 'bg-red-100 text-red-800 border-red-200';
-        case 'medium':
-            return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-        case 'low':
-            return 'bg-green-100 text-green-800 border-green-200';
-        default:
-            return 'bg-gray-100 text-gray-800 border-gray-200';
-        }
-    };
-
-    const getSeverityBadge = (severity: string) => {
-        switch (severity) {
-        case 'high':
-            return 'High Priority';
-        case 'medium':
-            return 'Medium Priority';
-        case 'low':
-            return 'Info';
-        default:
-            return '';
-        }
-    };
-
     return (
         <div className="flex flex-col font-mono">
             <div className="fixed inset-0 opacity-[0.5] pointer-events-none" 
@@ -423,7 +323,7 @@ export default function Presentation() {
                         <p>Testers</p>
                     </div>
                     <div className="flex flex-col gap-3 items-center justify-center">
-                        <p className="text-6xl font-bold">63</p>
+                        <p className="text-6xl font-bold">{totalTestCases}</p>
                         <p>Test Cases</p>
                     </div>
                     <div className="flex flex-col gap-3 items-center justify-center">
@@ -547,7 +447,7 @@ export default function Presentation() {
                         </ChartContainer>
                 </div>
             </div>
-            {/* <div className="flex flex-col h-screen items-start justify-center max-w-4xl w-screen mx-auto">
+            <div className="flex flex-col h-screen items-start justify-center max-w-4xl w-screen mx-auto">
                 <div className="flex flex-col gap-4 w-full items-start text-sm   ">
                     <p className="text-xl font-medium tracking-wide">{promisTestCases[promisTestCaseIndex]?.title}</p>
                     <p>{promisTestCases[promisTestCaseIndex]?.description}</p>
@@ -604,7 +504,7 @@ export default function Presentation() {
                         <div className="bg-neutral-800 text-white px-3 py-2 cursor-pointer" onClick={() => fetchResponsePerCase('PRMS', true)}>Next</div>
                     </div>
                 </div>
-            </div> */}
+            </div>
             <div className="flex flex-col h-screen items-start justify-center max-w-4xl w-screen mx-auto">
                 <ChartContainer config={barChartPromisConfig} className=" h-[250px] w-full">
                     <BarChart accessibilityLayer data={promisBarGraph}>
@@ -640,10 +540,10 @@ export default function Presentation() {
                     {
                         Object.keys(promisComments).map((key: any) => (
                             <div key={key} className="flex flex-col gap-8 p-4 border border-gray-300 w-full relative">
-                                {/* <div className="flex flex-col gap-2 text-[13px]">
+                                <div className="flex flex-col gap-2 text-[13px]">
                                     <p className="text-neutral-500">Tester</p>
                                     <p>{promisComments[key]?.tester_email}</p>
-                                </div> */}
+                                </div>
                                 <div className="flex flex-col gap-2 text-[13px]">
                                     <p className="text-neutral-500">Remarks</p>
                                     <p>{promisComments[key]?.remarks}</p>
@@ -651,90 +551,6 @@ export default function Presentation() {
                             </div>
                         ))
                     }
-                </div>
-            </div>
-            <div className="max-w-6xl mx-auto p-6 bg-gray-50 min-h-screen mt-10">
-                {/* Header */}
-                <div className="bg-white rounded-lg shadow-sm p-6 mb-6 border border-gray-200">
-                    <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                    Alpha Testing Feedback Summary
-                    </h1>
-                    <p className="text-gray-600 text-sm">
-                    Comprehensive feedback collected from alpha testers during the initial testing phase
-                    </p>
-                    <div className="flex gap-4 mt-4 text-sm">
-                    <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                        <span className="text-gray-700">High Priority ({feedbackData.filter(f => f.severity === 'high').length})</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                        <span className="text-gray-700">Medium Priority ({feedbackData.filter(f => f.severity === 'medium').length})</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                        <span className="text-gray-700">Info ({feedbackData.filter(f => f.severity === 'low').length})</span>
-                    </div>
-                    </div>
-                </div>
-
-                {/* Feedback Cards */}
-                <div className="space-y-4">
-                    {feedbackData.map((feedback, index) => (
-                    <div
-                        key={index}
-                        className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
-                    >
-                        {/* Category Header */}
-                        <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 border-b border-gray-200">
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-lg font-semibold text-gray-900">
-                            {feedback.category}
-                            </h2>
-                            <span
-                            className={`px-3 py-1 rounded-full text-xs font-medium border ${getSeverityColor(
-                                feedback.severity
-                            )}`}
-                            >
-                            {getSeverityBadge(feedback.severity)}
-                            </span>
-                        </div>
-                        </div>
-
-                        {/* Feedback Items */}
-                        <div className="p-4">
-                        <ul className="space-y-3">
-                            {feedback.items.map((item, itemIndex) => (
-                            <li
-                                key={itemIndex}
-                                className="flex gap-3 text-sm text-gray-700 leading-relaxed"
-                            >
-                                <span className="text-blue-600 font-bold mt-0.5 flex-shrink-0">
-                                •
-                                </span>
-                                <span>{item}</span>
-                            </li>
-                            ))}
-                        </ul>
-                        </div>
-
-                        {/* Footer */}
-                        <div className="bg-gray-50 px-4 py-2 border-t border-gray-200">
-                        <p className="text-xs text-gray-500">
-                            {feedback.items.length} {feedback.items.length === 1 ? 'item' : 'items'} reported
-                        </p>
-                        </div>
-                    </div>
-                    ))}
-                </div>
-
-                {/* Footer Summary */}
-                <div className="mt-6 bg-white rounded-lg shadow-sm p-4 border border-gray-200">
-                    <p className="text-sm text-gray-600 text-center">
-                    Total Issues Identified: <span className="font-semibold text-gray-900">
-                        {feedbackData.reduce((acc, curr) => acc + curr.items.length, 0)}
-                    </span>
-                    </p>
                 </div>
             </div>
             <div className="flex flex-col h-screen items-center justify-center max-w-4xl mx-auto">
@@ -771,7 +587,7 @@ export default function Presentation() {
                         </ChartContainer>
                 </div>
             </div>
-            {/* <div className="flex flex-col h-screen items-start justify-center max-w-4xl w-screen mx-auto">
+            <div className="flex flex-col h-screen items-start justify-center max-w-4xl w-screen mx-auto">
                 <div className="flex flex-col gap-4 w-full items-start text-sm   ">
                     <p className="text-xl font-medium tracking-wide">{inspireTestCases[inspireTestCaseIndex]?.title}</p>
                     <p>{inspireTestCases[inspireTestCaseIndex]?.description}</p>
@@ -828,7 +644,7 @@ export default function Presentation() {
                         <div className="bg-neutral-800 text-white px-3 py-2 cursor-pointer" onClick={() => fetchResponsePerCase('INSPR', true)}>Next</div>
                     </div>
                 </div>
-            </div> */}
+            </div>
             <div className="flex flex-col h-screen items-start justify-center max-w-4xl w-screen mx-auto">
                 <ChartContainer config={barChartPromisConfig} className=" h-[250px] w-full">
                     <BarChart accessibilityLayer data={inspireBarGraph}>
@@ -864,10 +680,10 @@ export default function Presentation() {
                     {
                         Object.keys(inspireComments).map((key: any) => (
                             <div key={key} className="flex flex-col gap-8 p-4 border border-gray-300 w-full relative">
-                                {/* <div className="flex flex-col gap-2 text-[13px]">
+                                <div className="flex flex-col gap-2 text-[13px]">
                                     <p className="text-neutral-500">Tester</p>
                                     <p>{inspireComments[key]?.tester_email}</p>
-                                </div> */}
+                                </div>
                                 <div className="flex flex-col gap-2 text-[13px]">
                                     <p className="text-neutral-500">Remarks</p>
                                     <p>{inspireComments[key]?.remarks}</p>
@@ -911,7 +727,7 @@ export default function Presentation() {
                         </ChartContainer>
                 </div>
             </div>
-            {/* <div className="flex flex-col h-screen items-start justify-center max-w-4xl w-screen mx-auto">
+            <div className="flex flex-col h-screen items-start justify-center max-w-4xl w-screen mx-auto">
                 <div className="flex flex-col gap-4 w-full items-start text-sm   ">
                     <p className="text-xl font-medium tracking-wide">{scorecardTestCases[scorecardTestCaseIndex]?.title}</p>
                     <p>{scorecardTestCases[scorecardTestCaseIndex]?.description}</p>
@@ -968,7 +784,7 @@ export default function Presentation() {
                         <div className="bg-neutral-800 text-white px-3 py-2 cursor-pointer" onClick={() => fetchResponsePerCase('SCRD', true)}>Next</div>
                     </div>
                 </div>
-            </div> */}
+            </div>
             <div className="flex flex-col h-screen items-start justify-center max-w-4xl w-screen mx-auto">
                 <ChartContainer config={barChartPromisConfig} className=" h-[250px] w-full">
                     <BarChart accessibilityLayer data={scorecardBarGraph}>

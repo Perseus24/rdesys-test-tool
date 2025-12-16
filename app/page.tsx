@@ -47,6 +47,8 @@ export default function Home() {
     const [imageUrl, setImageUrl] = useState<string | null>(null)
     const [error, setError] = useState<string | null>(null)
 
+    const [phaseToTest, setPhaseToTest] = useState(2);
+
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = e.target.files?.[0]
         
@@ -188,9 +190,9 @@ export default function Home() {
         handleChangeOverallForm('promis');
     }
     // get test cases
-    const getTest = async (userType: string, testId: string) => {
+    const getTest = async (userType: string, testId: string, phase?: number) => {
         setIsFetchingTests(true)
-        const data = await getTestCases(userType, testId);
+        const data = await getTestCases(userType, testId, phaseToTest);
         setTestCases(data);
         setIsFetchingTests(false)
     }
@@ -274,13 +276,27 @@ export default function Home() {
             <div className="max-w-4xl mx-auto px-8 py-16 relative">
                 {/* header */}
                 <div className='flex flex-col gap-8'>
-                    <p className="text-sm text-neutral-500">[ RDESys version = 1.0 ]</p>
+                    {/* selection of phase */}
+                    <div className='flex justify-between items-center'>
+                        <p className="text-sm text-neutral-500">[ RDESys version = 2.0 ]</p>
+                        <div className='flex flex-col gap-2 items-end'>
+                            <p className='text-sm italic'>Select which phase to test</p>
+                            <select 
+                                value={phaseToTest}
+                                onChange={(e) => setPhaseToTest(Number(e.target.value))}
+                                className="w-min px-4 py-3 border border-neutral-300 focus:border-orange-600 focus:outline-none font-sans">
+                                <option value="1">Phase 1</option>
+                                <option value="2">Phase 2</option>
+                            </select>
+                        </div>
+                    </div>
                     <h1 className="text-5xl font-light leading-tight mb-4">
                         Alpha Testing,<br/>
+                        <p className='text-5xl  font-bold  text-cyan-600'>PHASE { phaseToTest }</p>
                         <span className="italic text-neutral-600">feedback portal</span>
                     </h1>
                     <p className='max-w-2xl text-lg text-neutral-600 leading-relaxed font-sans mb-4'>
-                        Thank you for participating in the alpha testing phase of the RDESys v1.0. 
+                        Thank you for participating in the alpha testing phase of the RDESys v2.0. 
                         Your feedback is crucial in identifying issues and improving the system before full deployment.</p>
                     <div className='-mt-5 max-w-2xl bg-orange-50 border-l-4 border-orange-600 p-4 text-sm text  -neutral-700 font-sans flex flex-col gap-2'>
                         <p><span className='font-bold'>Instructions:</span></p>
