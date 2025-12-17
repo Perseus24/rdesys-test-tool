@@ -380,9 +380,8 @@ export const getTesterProgress = async () => {
     const { data: allTestCases, error: testCasesError } = await supabase
         .from('test_cases')
         .select('*')
-        .order('order', { ascending: true })
-        .eq('phase', 1);
-    
+        .order('order', { ascending: true });
+            
     if (testCasesError) {
         console.error('Error fetching test cases:', testCasesError);
         return null;
