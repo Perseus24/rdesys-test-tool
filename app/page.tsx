@@ -3,7 +3,13 @@ import { AlertCircle, CheckCircle, ExternalLink, Loader, Star, Upload } from 'lu
 import React, { useEffect, useState } from 'react';
 import { fetchPreviousModuleEval, getStepsToTestCases, getUserFeedbacks, submitOverallForm, submitResponse, uploadImage, validateImageFile } from './lib/supabase';
 import { getTestCases } from './lib/supabase';
-import Head from "next/head";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover"
+import { Checkbox } from '@/components/ui/checkbox';
+
 
 export default function Home() {
     const [feedbacks, setFeedbacks] = useState<any[]>([]);
@@ -48,6 +54,7 @@ export default function Home() {
     const [error, setError] = useState<string | null>(null)
 
     const [phaseToTest, setPhaseToTest] = useState(2);
+    const [privacyPolicyChecked, setPrivacyPolicyChecked] = useState(false);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = e.target.files?.[0]
@@ -750,12 +757,12 @@ export default function Home() {
                                         />
                                     </div>
                                 </div>
-                                <div className='flex gap-3 bg-neutral-100 border border-neutral-300 p-6 mt-8 font-sans text-sm'>
-                                    <AlertCircle size={20} className="text-orange-600 shrink-0 mt-1" />
-                                    <div className='flex flex-col gap-2'>
-                                        <p className='text-neutral-700 font-medium'>Privacy Notice</p>
-                                        <p>Your information will be used solely for the purpose of this alpha testing phase.</p>
-                                    </div>
+                                <div className="flex items-center gap-3  mt-8">
+                                    <Checkbox checked={privacyPolicyChecked} onCheckedChange={(checked) => setPrivacyPolicyChecked(checked === true)}  id="consent-agreement" />
+                                    <label className='text-neutral-700 font-medium text-sm'>
+                                        <span>I have read and agree to the </span>
+                                        <a target="_blank" href="/privacy-policy" className='underline cursor-pointer text-cyan-600'>Privacy Policy.</a>
+                                        <span className='text-red-600'>*</span></label>
                                 </div>
                                 <div className='flex justify-between mt-8'>
                                     <div 
@@ -765,10 +772,10 @@ export default function Home() {
                                     </div>
                                     <button 
                                         onClick={handleSubmitResponse}
-                                        disabled={formData.testerEmail == '' || formData.testerRole == '' || isSubmitting}
+                                        disabled={formData.testerEmail == '' || formData.testerRole == '' || !privacyPolicyChecked || isSubmitting}
                                         className={`
                                             bg-black px-6 py-3 transition-colors text-white 
-                                            ${formData.testerEmail == '' || formData.testerRole == '' || isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-orange-600  cursor-pointer'}
+                                            ${formData.testerEmail == '' || formData.testerRole == '' || !privacyPolicyChecked ||isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-orange-600  cursor-pointer'}
                                         `}>
                                             {
                                                 isSubmitting ? (
