@@ -3,7 +3,13 @@ import { AlertCircle, CheckCircle, ExternalLink, Loader, Star, Upload } from 'lu
 import React, { useEffect, useState } from 'react';
 import { fetchPreviousModuleEval, getStepsToTestCases, getUserFeedbacks, submitOverallForm, submitResponse, uploadImage, validateImageFile } from './lib/supabase';
 import { getTestCases } from './lib/supabase';
-import Head from "next/head";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover"
+import { Checkbox } from '@/components/ui/checkbox';
+
 
 export default function Home() {
     const [feedbacks, setFeedbacks] = useState<any[]>([]);
@@ -46,6 +52,9 @@ export default function Home() {
     const [uploading, setUploading] = useState(false)
     const [imageUrl, setImageUrl] = useState<string | null>(null)
     const [error, setError] = useState<string | null>(null)
+
+    const [phaseToTest, setPhaseToTest] = useState(2);
+    const [privacyPolicyChecked, setPrivacyPolicyChecked] = useState(false);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = e.target.files?.[0]
@@ -188,9 +197,9 @@ export default function Home() {
         handleChangeOverallForm('promis');
     }
     // get test cases
-    const getTest = async (userType: string, testId: string) => {
+    const getTest = async (userType: string, testId: string, phase?: number) => {
         setIsFetchingTests(true)
-        const data = await getTestCases(userType, testId);
+        const data = await getTestCases(userType, testId, phaseToTest);
         setTestCases(data);
         setIsFetchingTests(false)
     }
@@ -274,13 +283,27 @@ export default function Home() {
             <div className="max-w-4xl mx-auto px-8 py-16 relative">
                 {/* header */}
                 <div className='flex flex-col gap-8'>
-                    <p className="text-sm text-neutral-500">[ RDESys version = 1.0 ]</p>
+                    {/* selection of phase */}
+                    <div className='flex justify-between items-center'>
+                        <p className="text-sm text-neutral-500">[ RDESys version = 2.0 ]</p>
+                        <div className='flex flex-col gap-2 items-end'>
+                            <p className='text-sm italic'>Select which phase to test</p>
+                            <select 
+                                value={phaseToTest}
+                                onChange={(e) => setPhaseToTest(Number(e.target.value))}
+                                className="w-min px-4 py-3 border border-neutral-300 focus:border-orange-600 focus:outline-none font-sans">
+                                <option value="1">Phase 1</option>
+                                <option value="2">Phase 2</option>
+                            </select>
+                        </div>
+                    </div>
                     <h1 className="text-5xl font-light leading-tight mb-4">
                         Alpha Testing,<br/>
+                        <p className='text-5xl  font-bold  text-cyan-600'>PHASE { phaseToTest }</p>
                         <span className="italic text-neutral-600">feedback portal</span>
                     </h1>
                     <p className='max-w-2xl text-lg text-neutral-600 leading-relaxed font-sans mb-4'>
-                        Thank you for participating in the alpha testing phase of the RDESys v1.0. 
+                        Thank you for participating in the alpha testing phase of the RDESys v2.0. 
                         Your feedback is crucial in identifying issues and improving the system before full deployment.</p>
                     <div className='-mt-5 max-w-2xl bg-orange-50 border-l-4 border-orange-600 p-4 text-sm text  -neutral-700 font-sans flex flex-col gap-2'>
                         <p><span className='font-bold'>Instructions:</span></p>
@@ -734,13 +757,13 @@ export default function Home() {
                                         />
                                     </div>
                                 </div>
-                                <div className='flex gap-3 bg-neutral-100 border border-neutral-300 p-6 mt-8 font-sans text-sm'>
-                                    <AlertCircle size={20} className="text-orange-600 shrink-0 mt-1" />
-                                    <div className='flex flex-col gap-2'>
-                                        <p className='text-neutral-700 font-medium'>Privacy Notice</p>
-                                        <p>Your information will be used solely for the purpose of this alpha testing phase.</p>
-                                    </div>
-                                </div>
+                                {/* <div className="flex items-center gap-3  mt-8">
+                                    <Checkbox checked={privacyPolicyChecked} onCheckedChange={(checked) => setPrivacyPolicyChecked(checked === true)}  id="consent-agreement" />
+                                    <label className='text-neutral-700 font-medium text-sm'>
+                                        <span>I have read and agree to the </span>
+                                        <a target="_blank" href="/privacy-policy" className='underline cursor-pointer text-cyan-600'>Privacy Policy.</a>
+                                        <span className='text-red-600'>*</span></label>
+                                </div> */}
                                 <div className='flex justify-between mt-8'>
                                     <div 
                                         onClick={() => setCurrentStep(2)}
@@ -749,10 +772,11 @@ export default function Home() {
                                     </div>
                                     <button 
                                         onClick={handleSubmitResponse}
+                                        // disabled={formData.testerEmail == '' || formData.testerRole == '' || !privacyPolicyChecked || isSubmitting}
                                         disabled={formData.testerEmail == '' || formData.testerRole == '' || isSubmitting}
                                         className={`
                                             bg-black px-6 py-3 transition-colors text-white 
-                                            ${formData.testerEmail == '' || formData.testerRole == '' || isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-orange-600  cursor-pointer'}
+                                            ${formData.testerEmail == '' || formData.testerRole == '' ||isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-orange-600  cursor-pointer'}
                                         `}>
                                             {
                                                 isSubmitting ? (
