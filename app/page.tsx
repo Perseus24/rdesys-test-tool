@@ -757,13 +757,13 @@ export default function Home() {
                                         />
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-3  mt-8">
+                                {/* <div className="flex items-center gap-3  mt-8">
                                     <Checkbox checked={privacyPolicyChecked} onCheckedChange={(checked) => setPrivacyPolicyChecked(checked === true)}  id="consent-agreement" />
                                     <label className='text-neutral-700 font-medium text-sm'>
                                         <span>I have read and agree to the </span>
                                         <a target="_blank" href="/privacy-policy" className='underline cursor-pointer text-cyan-600'>Privacy Policy.</a>
                                         <span className='text-red-600'>*</span></label>
-                                </div>
+                                </div> */}
                                 <div className='flex justify-between mt-8'>
                                     <div 
                                         onClick={() => setCurrentStep(2)}
@@ -772,10 +772,11 @@ export default function Home() {
                                     </div>
                                     <button 
                                         onClick={handleSubmitResponse}
-                                        disabled={formData.testerEmail == '' || formData.testerRole == '' || !privacyPolicyChecked || isSubmitting}
+                                        // disabled={formData.testerEmail == '' || formData.testerRole == '' || !privacyPolicyChecked || isSubmitting}
+                                        disabled={formData.testerEmail == '' || formData.testerRole == '' || isSubmitting}
                                         className={`
                                             bg-black px-6 py-3 transition-colors text-white 
-                                            ${formData.testerEmail == '' || formData.testerRole == '' || !privacyPolicyChecked ||isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-orange-600  cursor-pointer'}
+                                            ${formData.testerEmail == '' || formData.testerRole == '' ||isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-orange-600  cursor-pointer'}
                                         `}>
                                             {
                                                 isSubmitting ? (
