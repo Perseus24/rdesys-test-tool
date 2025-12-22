@@ -482,7 +482,7 @@ export default function Presentation() {
 
             <div className="flex flex-col h-screen items-center justify-center max-w-4xl mx-auto">
                 <div className='flex flex-col gap-8'>
-                    <p className="text-sm text-neutral-500">[ RDESys version = 1.0 ]</p>
+                    <p className="text-sm text-neutral-500">[ RDESys version = 2.0 ]</p>
                     <h1 className="text-5xl font-light leading-tight mb-4">
                         Alpha Testing,<br/>
                         <span className="italic text-neutral-600">summary</span>
@@ -498,7 +498,7 @@ export default function Presentation() {
                         <p>Testers</p>
                     </div>
                     <div className="flex flex-col gap-3 items-center justify-center">
-                        <p className="text-6xl font-bold">63</p>
+                        <p className="text-6xl font-bold">{totalTestCases}</p>
                         <p>Test Cases</p>
                     </div>
                     <div className="flex flex-col gap-3 items-center justify-center">

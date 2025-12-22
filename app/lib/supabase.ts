@@ -87,8 +87,7 @@ export const getTotalTestCases = async (module?: string) => {
             .from('test_cases')
             .select('test_id')
             .like('test_id', `${module}%`)
-            .order('order', { ascending: true })
-            .eq('phase', 1);
+            .order('order', { ascending: true });
         
         return data || null;
     }
@@ -281,9 +280,6 @@ export const fetchModuleComments = async (module?: string) => {
         .neq('remarks', "")
         .like('test_cases.test_id', `${module}%`);
 
-        console.log("fetchModuleComments", data);
-
-        
     return data || null;
 }
 
