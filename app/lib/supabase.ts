@@ -39,8 +39,7 @@ export const getTestCases = async (userType?: string, testId?: string, phase?: n
             .from('test_cases')
             .select('*')
             .like('test_id', `${testId}%`)
-            .order('order', { ascending: true })
-            .eq('phase', phase);
+            .order('order', { ascending: true });
 
         if (error) {
             console.error('Error fetching test cases:', error.message);
@@ -52,8 +51,7 @@ export const getTestCases = async (userType?: string, testId?: string, phase?: n
             .select('*')
             .eq('user_type', userType)
             .like('test_id', `${testId}%`)
-            .order('order', { ascending: true })
-            .eq('phase', phase);
+            .order('order', { ascending: true });
 
         if (error) {
             console.error('Error fetching test cases:', error.message);
@@ -75,7 +73,6 @@ export const getStepsToTestCases = async (testId: number) => {
 }
 
 export const getTotalTestCases = async (module?: string) => {
-
     if (module) {
         switch (module) {
             case 'promis': module = 'PRMS'; break;
@@ -254,8 +251,6 @@ export const getResponsePerCase = async (module?: string, testId?: string) => {
         `)
         .eq('test_cases.id', testId)
 
-    console.log("dadasd", data, module, testId);
-        
     return data || null;
 }
 

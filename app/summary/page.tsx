@@ -373,7 +373,6 @@ export default function Presentation() {
                     </div>
                     )
                 }
-
             {
                     moduleData && (
                 <div className="flex flex-col h-screen items-center justify-center max-w-4xl mx-auto">
