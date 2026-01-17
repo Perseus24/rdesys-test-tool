@@ -138,7 +138,7 @@ export default function Presentation() {
         async function fetchPromisTestCases() {
             const modules = ['PRMS', 'INSPR', 'SCRD'];
             modules.map(async (item) => {
-                const data = await getTestCases('null', item, 1);
+                const data = await getTestCases('null', item, 2);
                 if (data) {
                     if (item === 'PRMS') setPromisTestCases(data);
                     if (item === 'INSPR') setInspireTestCases(data);
@@ -464,12 +464,12 @@ export default function Presentation() {
             const systemTotal = systemTests.length + systemUnanswered.length;
             
             return {
-            ...tester,
-            answered: systemTests,
-            unanswered: systemUnanswered,
-            completedTests: systemTests.length,
-            totalTests: systemTotal,
-            completionRate: systemTotal > 0 ? Math.round((systemTests.length / systemTotal) * 100) : 0
+                ...tester,
+                answered: systemTests,
+                unanswered: systemUnanswered,
+                completedTests: systemTests.length,
+                totalTests: systemTotal,
+                completionRate: systemTotal > 0 ? Math.round((systemTests.length / systemTotal) * 100) : 0
             };
         });
 
@@ -482,7 +482,7 @@ export default function Presentation() {
 
             <div className="flex flex-col h-screen items-center justify-center max-w-4xl mx-auto">
                 <div className='flex flex-col gap-8'>
-                    <p className="text-sm text-neutral-500">[ RDESys version = 1.0 ]</p>
+                    <p className="text-sm text-neutral-500">[ RDESys version = 2.0 ]</p>
                     <h1 className="text-5xl font-light leading-tight mb-4">
                         Alpha Testing,<br/>
                         <span className="italic text-neutral-600">summary</span>
@@ -498,7 +498,7 @@ export default function Presentation() {
                         <p>Testers</p>
                     </div>
                     <div className="flex flex-col gap-3 items-center justify-center">
-                        <p className="text-6xl font-bold">63</p>
+                        <p className="text-6xl font-bold">{totalTestCases}</p>
                         <p>Test Cases</p>
                     </div>
                     <div className="flex flex-col gap-3 items-center justify-center">
@@ -820,15 +820,15 @@ export default function Presentation() {
                 <div className="text-cyan-500 font-bold tracking-wide text-6xl mb-16">InSPIRE</div>
                 <div className="flex flex-wrap gap-20">
                     <div className="flex flex-col gap-3 items-center justify-center">
-                        <p className="text-6xl font-bold">2</p>
+                        <p className="text-6xl font-bold">10</p>
                         <p>Testers</p>
                     </div>
                     <div className="flex flex-col gap-3 items-center justify-center">
-                        <p className="text-6xl font-bold">11</p>
+                        <p className="text-6xl font-bold">72</p>
                         <p>Responses</p>
                     </div>
                     <div className="flex flex-col gap-3 items-center justify-center">
-                        <p className="text-6xl font-bold">9/28</p>
+                        <p className="text-6xl font-bold">37</p>
                         <p>Test Cases</p>
                     </div>
                     <ChartContainer
